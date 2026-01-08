@@ -1,0 +1,52 @@
+================================================================================
+COMPLETE PACKAGE CONTENTS
+================================================================================
+
+================================================================================
+📂 FOLDER STRUCTURE
+================================================================================
+
+project_folder/                        ← Main project folder
+│
+├── index.php                         ← Homepage - displays all products
+├── database.sql                      ← SQL script to create database
+├── README.md                         ← Project documentation
+├── .htaccess                         ← Apache configuration
+│
+├── config/                           ← Configuration files
+│   ├── config.php                    ← Base URL setting (IMPORTANT!)
+│   └── database.php                  ← MySQL connection settings
+│
+├── includes/                         ← Reusable page components
+│   ├── header.php                    ← Top navigation & HTML head
+│   └── footer.php                    ← Footer & closing tags
+│
+├── css/                              ← Stylesheets
+│   └── style.css                     ← All CSS styles
+│
+├── javascripts/                      ← JavaScript files
+│   └── script.js                     ← Client-side functionality
+│
+├── pages/                            ← Additional pages
+│   ├── add_product.php               ← Add new product form
+│   ├── edit_product.php              ← Edit existing product
+│   └── about.php                     ← About/Info page
+│
+└── guides/                           ← Documentation files
+    ├── START_HERE.txt                ← Getting started guide
+    ├── TECHNICAL_GUIDE.txt           ← Concepts and best practices
+    └── PACKAGE_CONTENTS.txt          ← This file
+
+IMPORTANT NOTES:
+- If you rename the project folder, update BASE_URL in config/config.php
+- All PHP files contain inline comments explaining the code
+- The guides/ folder contains learning resources
+
+================================================================================
+📖 RECOMMENDED READING ORDER
+================================================================================
+
+1. START_HERE.txt        → Complete setup and learning path
+2. PACKAGE_CONTENTS.txt  → Understand folder structure (this file)
+3. TECHNICAL_GUIDE.txt   → Learn concepts and best practices
+4. Explore PHP files     → Read inline code comments

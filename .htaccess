@@ -1,0 +1,23 @@
+# Prevent directory browsing
+Options -Indexes
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# Custom error pages (optional)
+# ErrorDocument 404 /sample_project/404.php
+
+# Enable rewrite engine (if you want clean URLs later)
+RewriteEngine On
+
+# Protect config folder
+<Files "config/config.php">
+    Order Deny,Allow
+    Deny from all
+</Files>
+
+# PHP settings
+php_value upload_max_filesize 10M
+php_value post_max_size 10M
+php_value max_execution_time 300
+php_value max_input_time 300
