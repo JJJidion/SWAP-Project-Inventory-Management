@@ -8,19 +8,23 @@
 -- CREATE DATABASE
 -- ========================================
 
-CREATE DATABASE IF NOT EXISTS products_db;
+CREATE DATABASE IF NOT EXISTS inv_management_db;
 
-USE products_db;
+USE inv_management_db;
 
 -- ========================================
 -- CREATE PRODUCTS TABLE
 -- ========================================
 
-CREATE TABLE IF NOT EXISTS products (
+CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    price DECIMAL(10, 2) NOT NULL,
-    description TEXT NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL, -- function auto creates salt
+    role ENUM('Admin', 'User') DEFAULT 'User' NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    phone_number VARCHAR(10) UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -29,12 +33,8 @@ CREATE TABLE IF NOT EXISTS products (
 -- INSERT SAMPLE DATA
 -- ========================================
 
-INSERT INTO products (name, price, description) VALUES
-    ('Laptop', 999.99, 'High-performance laptop with 16GB RAM and 512GB SSD'),
-    ('Wireless Mouse', 29.99, 'Ergonomic wireless mouse with USB receiver'),
-    ('Mechanical Keyboard', 79.99, 'RGB mechanical keyboard with Cherry MX switches'),
-    ('Monitor', 299.99, '27-inch 4K UHD monitor with HDR support'),
-    ('USB-C Hub', 49.99, '7-in-1 USB-C hub with multiple ports');
+INSERT INTO users (email, username, password_hash, role, first_name, last_name, phone_number) VALUES
+    ('admin@gmail.com', 'Admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', 'Admin', 'John', 'Doe', '12345678');
 
 -- ========================================
 -- VERIFICATION (Optional)
@@ -43,3 +43,4 @@ INSERT INTO products (name, price, description) VALUES
 -- DESCRIBE products;
 
 -- Setup complete! Your database is ready to use.
+
