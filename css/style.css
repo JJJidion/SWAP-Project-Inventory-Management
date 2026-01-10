@@ -284,3 +284,33 @@ table tr:hover {
         grid-template-columns: 1fr;
     }
 }
+
+/* ========================================
+   LOGIN PAGE SPECIFIC STYLES
+   ======================================== */
+
+.login-wrapper {
+    min-height: 80vh; /* Use almost full height to center vertically */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 400px; /* Keep the login box narrow and neat */
+    margin: 0 auto;
+}
+
+.login-card h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.btn-block {
+    display: block;
+    width: 100%;
+    margin: 1rem 0 0 0;
+    text-align: center;
+    font-size: 1.1rem;
+}
