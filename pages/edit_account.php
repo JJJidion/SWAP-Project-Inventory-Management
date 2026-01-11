@@ -1,12 +1,18 @@
 <?php
     /**
-     * Account Management Page
+     * Edit Account Page
      *
      * Page allowing inventory managers to edit user accounts.
      */
-
+    session_start();
     require_once __DIR__ . '/../config/config.php';
+    
     $pageTitle = 'Edit Account';
+
+    if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "Admin") {
+    header("Location: login.php");
+    exit;
+    }
 
     if (!isset($_GET['id']) || empty($_GET['id'])) {
         die("Error: No user ID specified.");
@@ -16,33 +22,54 @@
 
     // 2. HANDLE FORM SUBMISSION (UPDATE)
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        // Collect data from the form
-        $username = $_POST['username'];
-        $email = $_POST['email'];
-        $firstName = $_POST['first_name'];
-        $lastName = $_POST['last_name'];
-        $role = $_POST['role'];
-        $phoneNumber = $_POST['phone_number'];
-        
-        // Update Query
-        $sql = "UPDATE users SET username = ?, email = ?, first_name = ?, last_name = ?, role = ?, phone_number = ?, updated_at = NOW() WHERE id = ?";
-        
-        if ($stmt = $conn->prepare($sql)) {
-            // "ssssssi" means: String, String, String, String, String, String, Integer (id)
-            $stmt->bind_param("ssssssi", $username, $email, $firstName, $lastName, $role, $phoneNumber, $userId);
-            
-            if ($stmt->execute()) {
-                echo "<script>alert('Account updated successfully!'); window.location.href='account_management.php';</script>";
-                exit; // Stop further execution
-            } else {
-                $error = "Error updating account: " . $stmt->error;
+
+        $isValid = true;
+
+        $requiredFields = ['first_name', 'last_name', 'username', 'email', 'password', 'confirm_password', 'role', 'phone_number'];
+
+        foreach ($requiredFields as $field) {
+            if (empty($_POST[$field])) {
+                $error = "Error: No fields should be empty";
+                $isValid = false;
+                break;
             }
-            $stmt->close();
-        } else {
-            $error = "Database error: " . $conn->error;
+        }
+
+        if ($_POST['password'] !== $_POST['confirm_password']) {
+            $error =  "Error: Passwords do not match";
+            $isValid = false;
+        }
+            if ($isValid) {
+            // Collect data from the form
+            $username = $_POST['username'];
+            $email = $_POST['email'];
+            $firstName = $_POST['first_name'];
+            $lastName = $_POST['last_name'];
+            $role = $_POST['role'];
+            $phoneNumber = $_POST['phone_number'];
+            $password = $_POST['password'];
+
+            $passwordHash = password_hash($password, PASSWORD_BCRYPT);
+            
+            // Update Query
+            $sql = "UPDATE users SET username = ?, email = ?, password_hash = ?, first_name = ?, last_name = ?, role = ?, phone_number = ?, updated_at = NOW() WHERE id = ?";
+            
+            if ($stmt = $conn->prepare($sql)) {
+                // "ssssssi" means: String, String, String, String, String, String, Integer (id)
+                $stmt->bind_param("sssssssi", $username, $email, $passwordHash, $firstName, $lastName, $role, $phoneNumber, $userId);
+                
+                if ($stmt->execute()) {
+                    echo "<script>alert('Account updated successfully!'); window.location.href='account_management.php';</script>";
+                    exit; // Stop further execution
+                } else {
+                    $error = "Error updating account: " . $stmt->error;
+                }
+                $stmt->close();
+            } else {
+                $error = "Database error: " . $conn->error;
+            }
         }
     }
-
     // 3. FETCH EXISTING DATA (TO FILL FORM)
     // We fetch the data *after* the update logic so the form shows the new values immediately
     $sql = "SELECT id, username, email, first_name, last_name, role, phone_number FROM users WHERE id = ?";
@@ -97,6 +124,16 @@
                 <div class="form-group">
                     <label>Email</label>
                     <input type="email" name="email" value="<?php echo htmlspecialchars($userData['email']); ?>" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="text" id="password" name="password" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password:</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required>
                 </div>
 
                 <div class="form-group">

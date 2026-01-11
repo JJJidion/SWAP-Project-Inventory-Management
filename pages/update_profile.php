@@ -1,19 +1,20 @@
 <?php
 /**
- * Account Creation Page
- *
+ * Update Profile Page
+ * PREFILL PROFILE DATAAA
  * Page allowing inventory managers to create accounts.
  */
 session_start();
 require_once __DIR__ . '/../config/config.php';
-$pageTitle = 'Create Account';
+$pageTitle = 'Update Profile';
 
 // Check if user is logged in and has permission
-if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "Admin") {
+if (!isset($_SESSION["username"])) {
     header("Location: login.php");
     exit;
 }
 
+$userId = $_GET['id'];
 $error = '';
 $success = false;
 
@@ -50,12 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $passwordHash = password_hash($password, PASSWORD_BCRYPT);
 
-        $query= $conn->prepare("INSERT INTO `users` (`email`, `username`, `password_hash`, `role`, `first_name`, `last_name`, `phone_number`) VALUES
-        (?,?,?,?,?,?,?)");
-        $query->bind_param('sssssss', $email, $username, $passwordHash, $role, $firstName, $lastName, $phoneNumber); //bind the parameters
+        $query= $conn->prepare("UPDATE users SET username = ?, email = ?, first_name = ?, last_name = ?, role = ?, phone_number = ?, updated_at = NOW() WHERE id = ?");
+        $query->bind_param('sssssss', $email, $username, $passwordHash, $role, $firstName, $lastName, $phoneNumber, $userId); //bind the parameters
 
         if ($query->execute()){  //execute query
-            echo "<script>alert('Account successfully created!'); window.location.href='account_management.php';</script>";
+            echo "<script>alert('Profile successfully updated!'); window.location.href='profile.php';</script>";
             exit; // Stop further execution
         } else {
             echo "Error executing query.";

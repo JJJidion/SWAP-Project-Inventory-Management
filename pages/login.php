@@ -73,9 +73,7 @@ if (!$checkAll) {
                     // Success!
                     $_SESSION["username"] = $userData["username"];
                     $_SESSION["role"] = $userData["role"];
-                    
-                    // Add other session vars if needed, e.g.
-                    // $_SESSION["user_id"] = $userData["id"];
+                    $_SESSION["first_name"] = $userData["first_name"];
 
                     $loginSuccess = true;
                 } else {

@@ -5,9 +5,15 @@
  * Page allowing inventory managers to view user accounts, with buttons redirecting to creating, updating and deleting accounts.
  */
 
+session_start();
 require_once __DIR__ . '/../config/config.php';
 
 $pageTitle = 'Account Management';
+
+if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "Admin") {
+    header("Location: login.php");
+    exit;
+}
 ?>
 
 <?php
@@ -80,7 +86,7 @@ $pageTitle = 'Account Management';
             </tbody>
             
         </table>
-
+        <br>
         <button type="button" class="btn btn-primary" onclick="window.location.href='create_account.php';">Create Account</button>
     </div>
     <?php include __DIR__ . '/../includes/footer.php'; ?>
