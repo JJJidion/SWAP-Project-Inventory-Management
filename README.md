@@ -4,6 +4,8 @@
 
 **📚 New to this project?**
 
+Testing credentials: User/user, Admin/admin
+
 All detailed guides are in the `./guides/` folder:
 
 - **`guides/START_HERE.txt`** - Complete getting started guide (setup + learning path)

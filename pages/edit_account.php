@@ -117,6 +117,16 @@
             <form action="edit_account.php?id=<?php echo $userId; ?>" method="POST">
                 
                 <div class="form-group">
+                    <label>First Name</label>
+                    <input type="text" name="first_name" value="<?php echo htmlspecialchars($userData['first_name']); ?>" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Last Name</label>
+                    <input type="text" name="last_name" value="<?php echo htmlspecialchars($userData['last_name']); ?>" required>
+                </div>
+
+                <div class="form-group">
                     <label>Username</label>
                     <input type="text" name="username" value="<?php echo htmlspecialchars($userData['username']); ?>" required>
                 </div>
@@ -134,16 +144,6 @@
                 <div class="form-group">
                     <label for="confirm_password">Confirm Password:</label>
                     <input type="password" id="confirm_password" name="confirm_password" required>
-                </div>
-
-                <div class="form-group">
-                    <label>First Name</label>
-                    <input type="text" name="first_name" value="<?php echo htmlspecialchars($userData['first_name']); ?>" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Last Name</label>
-                    <input type="text" name="last_name" value="<?php echo htmlspecialchars($userData['last_name']); ?>" required>
                 </div>
 
                 <div class="form-group">

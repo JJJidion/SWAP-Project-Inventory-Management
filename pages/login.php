@@ -73,6 +73,7 @@ if (!$checkAll) {
                     // Success!
                     $_SESSION["username"] = $userData["username"];
                     $_SESSION["role"] = $userData["role"];
+                    $_SESSION["user_id"] = $userData["id"];
                     $_SESSION["first_name"] = $userData["first_name"];
 
                     $loginSuccess = true;
