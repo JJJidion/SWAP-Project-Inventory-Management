@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS users (
 -- ========================================
 
 INSERT INTO users (email, username, password_hash, role, first_name, last_name, phone_number) VALUES
-    ('admin@gmail.com', 'Admin', '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', 'Admin', 'John', 'Doe', '12345678');
-
+    ('admin@gmail.com', 'Admin', '$2a$10$Di7knnd.pHrgu75uJ863D.vZJERMQ0Ic71c9E/CyU1XUn3ZC.ampC', 'Admin', 'John', 'Doe', '12345678');
+    ('user@gmail.com', 'User', '$2a$10$SbtdcL2vbNDWunMCAAEZiuKiOP60yppkOU9hGJyY9Qbj8FuDNOPUS', 'User', 'Jimmy', 'Lee', '87654321',);
 -- ========================================
 -- VERIFICATION (Optional)
 -- ========================================

@@ -1,0 +1,39 @@
+<?php
+/**
+ * Admin Dashboard Page
+ *
+ * Page allowing admin to perform administrative tasks.
+ */
+
+session_start();
+require_once __DIR__ . '/../config/config.php';
+
+// SECURITY CHECK: Ensure the user is actually logged in AND is an User
+// If they are not logged in OR they are not an User, kick them out.
+if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "User") {
+    header("Location: login.php");
+    exit;
+}
+
+
+
+$pageTitle = 'User Dashboard';
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo $pageTitle; ?></title>
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/style.css">
+</head>
+
+<body>
+    <?php include __DIR__ . '/../includes/header.php'; ?>
+    <div class="container">
+        <h1>User Dashboard</h1>
+    </div>
+    <?php include __DIR__ . '/../includes/footer.php'; ?>
+</body>
+</html>
