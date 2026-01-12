@@ -1,6 +1,4 @@
-# PHP Products Manager - Student Starter Project
-
-A simple, secure product management system designed to help students learn web development fundamentals. This project demonstrates clean folder structure, secure coding practices, and the basics of building dynamic web applications with PHP and MySQL.
+# PHP Inventory Manager - SWAP Project
 
 ## Getting Started
 
