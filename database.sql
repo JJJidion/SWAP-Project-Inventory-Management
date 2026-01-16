@@ -105,14 +105,19 @@ ALTER TABLE `users`
 
 COMMIT;
 
+-- Create the table with ALL the new columns included
 CREATE TABLE IF NOT EXISTS `inventory` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `part_name` VARCHAR(100) NOT NULL,
-    `stock_level` INT NOT NULL DEFAULT 0 CHECK (stock_level >= 0),
+    `category` VARCHAR(50) DEFAULT 'General',
+    `supplier` VARCHAR(100) DEFAULT 'Unknown',
+    `stock_level` INT NOT NULL DEFAULT 0,
     `status` ENUM('active', 'obsolete') DEFAULT 'active',
+    `is_deleted` TINYINT(1) DEFAULT 0, -- Soft Delete Flag
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Create the Audit Log table if missing
 CREATE TABLE IF NOT EXISTS `audit_logs` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `user_id` INT,
