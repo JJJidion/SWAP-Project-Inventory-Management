@@ -1,20 +1,18 @@
 <?php
 // utils/inventory_logic.php
 
-/**
- * Fetch inventory items. 
- * IMPROVEMENT: Filters out "Soft Deleted" items (is_deleted = 0).
- */
 function getInventory($conn, $search = '') {
     $items = [];
     try {
         if (!empty($search)) {
+            // Fetch items that match search AND are not deleted
             $stmt = $conn->prepare("SELECT * FROM inventory WHERE (part_name LIKE ? OR category LIKE ? OR id = ?) AND is_deleted = 0 ORDER BY id ASC");
             $searchTerm = "%$search%";
             $stmt->bind_param("sss", $searchTerm, $searchTerm, $search);
             $stmt->execute();
             $result = $stmt->get_result();
         } else {
+            // Fetch all non-deleted items
             $result = $conn->query("SELECT * FROM inventory WHERE is_deleted = 0 ORDER BY id ASC");
         }
         while ($row = $result->fetch_assoc()) {
@@ -26,12 +24,8 @@ function getInventory($conn, $search = '') {
     }
 }
 
-/**
- * Handles Add, Update, and Delete.
- * IMPROVEMENT: Implements "Soft Deletes" for forensic readiness.
- */
 function manageInventory($conn, $action, $data, $userId) {
-    // 1. Validation
+    // 1. Validation (Only run this for Add or Update)
     if ($action === 'add' || $action === 'update') {
         if ($data['quantity'] < 0) throw new Exception("Stock cannot be negative.");
         if (empty($data['part_name'])) throw new Exception("Part Name is required.");
@@ -55,15 +49,13 @@ function manageInventory($conn, $action, $data, $userId) {
             $logDetails = "Updated Part ID {$data['id']}: Stock {$data['quantity']}";
 
         } elseif ($action === 'delete') {
-            // --- IMPROVEMENT: Soft Delete ---
-            // Get name for log
+            // Soft Delete logic
             $stmtGet = $conn->prepare("SELECT part_name FROM inventory WHERE id = ?");
             $stmtGet->bind_param("i", $data['id']);
             $stmtGet->execute();
             $res = $stmtGet->get_result();
             $part = $res->fetch_assoc();
             
-            // Set flag instead of deleting row
             $stmt = $conn->prepare("UPDATE inventory SET is_deleted = 1 WHERE id = ?");
             $stmt->bind_param("i", $data['id']);
             $stmt->execute();
@@ -72,7 +64,7 @@ function manageInventory($conn, $action, $data, $userId) {
             $logDetails = "Soft Deleted Part ID {$data['id']} ($partName)";
         }
 
-        // 2. Traceability (Audit Log)
+        // Traceability
         $logStmt = $conn->prepare("INSERT INTO audit_logs (user_id, action, timestamp) VALUES (?, ?, NOW())");
         $logStmt->bind_param("is", $userId, $logDetails);
         $logStmt->execute();
