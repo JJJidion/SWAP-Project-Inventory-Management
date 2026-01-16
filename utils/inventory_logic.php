@@ -5,27 +5,54 @@ function getInventory($conn, $search = '') {
     $items = [];
     try {
         if (!empty($search)) {
-            // Fetch items that match search AND are not deleted
             $stmt = $conn->prepare("SELECT * FROM inventory WHERE (part_name LIKE ? OR category LIKE ? OR id = ?) AND is_deleted = 0 ORDER BY id ASC");
             $searchTerm = "%$search%";
             $stmt->bind_param("sss", $searchTerm, $searchTerm, $search);
             $stmt->execute();
             $result = $stmt->get_result();
         } else {
-            // Fetch all non-deleted items
             $result = $conn->query("SELECT * FROM inventory WHERE is_deleted = 0 ORDER BY id ASC");
         }
         while ($row = $result->fetch_assoc()) {
             $items[] = $row;
         }
         return $items;
-    } catch (Exception $e) {
-        return [];
+    } catch (Exception $e) { return []; }
+}
+
+// --- NEW FUNCTION: Dashboard Stats ---
+function getDashboardStats($conn) {
+    $stats = ['total_items' => 0, 'low_stock' => 0, 'total_value' => 0];
+    
+    // Total Items
+    $res = $conn->query("SELECT COUNT(*) as c FROM inventory WHERE is_deleted = 0");
+    $stats['total_items'] = $res->fetch_assoc()['c'];
+
+    // Low Stock (Less than 10)
+    $res = $conn->query("SELECT COUNT(*) as c FROM inventory WHERE stock_level < 10 AND is_deleted = 0");
+    $stats['low_stock'] = $res->fetch_assoc()['c'];
+
+    return $stats;
+}
+
+// --- NEW FUNCTION: Fetch Recent Logs ---
+function getRecentLogs($conn, $limit = 10) {
+    $logs = [];
+    $stmt = $conn->prepare("SELECT a.action, a.timestamp, u.username 
+                           FROM audit_logs a 
+                           JOIN users u ON a.user_id = u.id 
+                           ORDER BY a.timestamp DESC LIMIT ?");
+    $stmt->bind_param("i", $limit);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $logs[] = $row;
     }
+    return $logs;
 }
 
 function manageInventory($conn, $action, $data, $userId) {
-    // 1. Validation (Only run this for Add or Update)
+    // 1. Validation
     if ($action === 'add' || $action === 'update') {
         if ($data['quantity'] < 0) throw new Exception("Stock cannot be negative.");
         if (empty($data['part_name'])) throw new Exception("Part Name is required.");
@@ -49,7 +76,7 @@ function manageInventory($conn, $action, $data, $userId) {
             $logDetails = "Updated Part ID {$data['id']}: Stock {$data['quantity']}";
 
         } elseif ($action === 'delete') {
-            // Soft Delete logic
+            // Soft Delete
             $stmtGet = $conn->prepare("SELECT part_name FROM inventory WHERE id = ?");
             $stmtGet->bind_param("i", $data['id']);
             $stmtGet->execute();
