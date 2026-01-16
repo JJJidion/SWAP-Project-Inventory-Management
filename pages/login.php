@@ -18,12 +18,17 @@ define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOCKOUT_TIME_MINUTES', 1);
 
 // --- RATE LIMIT CHECK START ---
+// --- RATE LIMIT CHECK START ---
 $ip_address = $_SERVER['REMOTE_ADDR'];
-$lockout_threshold = date('Y-m-d H:i:s', time() - (60 * LOCKOUT_TIME_MINUTES));
+$lockout_minutes = LOCKOUT_TIME_MINUTES; // Assign constant to variable for binding
 
-// Count failed attempts from this IP in the last X minutes
-$stmt = $conn->prepare("SELECT COUNT(*) FROM login_attempts WHERE ip_address = ? AND attempt_time > ?");
-$stmt->bind_param("ss", $ip_address, $lockout_threshold);
+// Count failed attempts using ONLY MySQL's clock
+// We check if attempt_time > (NOW - X minutes)
+$stmt = $conn->prepare("SELECT COUNT(*) FROM login_attempts WHERE ip_address = ? AND attempt_time > (NOW() - INTERVAL ? MINUTE)");
+
+// Bind the parameters: "s" for string (IP), "i" for integer (minutes)
+$stmt->bind_param("si", $ip_address, $lockout_minutes);
+
 $stmt->execute();
 $result = $stmt->get_result();
 $countRow = $result->fetch_array();
