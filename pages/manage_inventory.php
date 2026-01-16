@@ -1,3 +1,12 @@
+Here is the full, final code for pages/manage_inventory.php.
+
+I have applied the Row Number fix. Now, instead of showing the database ID (like "4"), it will count 1, 2, 3... in the table, but it still keeps the real ID hidden in the background so the Delete button works perfectly.
+
+📄 File: pages/manage_inventory.php
+Copy and paste this entire block.
+
+PHP
+
 <?php
 // pages/manage_inventory.php
 session_start();
@@ -37,9 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $searchTerm = $_GET['search'] ?? '';
 $inventoryItems = getInventory($conn, $searchTerm);
 
-// --- NEW STATS CALCULATION (Fixes the "0" issue) ---
-// Instead of asking the DB, we count the array we just fetched.
-// This guarantees the Dashboard matches the Table exactly.
+// --- STATS CALCULATION ---
+// Count items directly from the list so it matches the table
 $totalItems = count($inventoryItems);
 $lowStockCount = 0;
 foreach ($inventoryItems as $item) {
@@ -48,14 +56,28 @@ foreach ($inventoryItems as $item) {
     }
 }
 
-// Get Logs for the audit section
-$logs = getRecentLogs($conn);
-
 $pageTitle = 'Inventory Manager';
 require_once '../includes/header.php'; 
 ?>
 
 <link rel="stylesheet" href="../css/style.css">
+
+<style>
+    .btn-green {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        text-decoration: none;
+        font-size: 14px;
+    }
+    .btn-green:hover {
+        background-color: #218838;
+    }
+</style>
 
 <div class="container">
     <h1>Inventory Management</h1>
@@ -65,9 +87,9 @@ require_once '../includes/header.php';
             <h3>Total Items</h3>
             <p style="font-size: 24px; font-weight: bold; margin: 0;"><?php echo $totalItems; ?></p>
         </div>
-        <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px; border-left: 5px solid #ffc107;">
+        <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px; border-left: 5px solid #dc3545;">
             <h3>Low Stock Alerts</h3>
-            <p style="font-size: 24px; font-weight: bold; margin: 0; color: #d9534f;"><?php echo $lowStockCount; ?></p>
+            <p style="font-size: 24px; font-weight: bold; margin: 0; color: #dc3545;"><?php echo $lowStockCount; ?></p>
         </div>
         <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px; border-left: 5px solid #6c757d;">
             <h3>Audit Logs</h3>
@@ -108,7 +130,7 @@ require_once '../includes/header.php';
                 <input type="number" name="quantity" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="display: flex; align-items: flex-end;">
-                <button type="submit" class="btn" style="background-color: #007bff; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">Add Item</button>
+                <button type="submit" class="btn-green">Add Item</button>
             </div>
         </div>
     </form>
@@ -116,13 +138,13 @@ require_once '../includes/header.php';
     <h3>Current Stock</h3>
     <form method="GET" style="margin-bottom: 10px; display: flex; gap: 5px;">
         <input type="text" name="search" placeholder="Search part name..." value="<?php echo htmlspecialchars($searchTerm); ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-        <button type="submit" class="btn" style="background-color: #007bff; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">Search</button>
-        <a href="manage_inventory.php?export=true" class="btn" style="background-color: #28a745; color: white; padding: 8px 15px; border: none; border-radius: 4px; text-decoration: none;">Export CSV</a>
+        <button type="submit" class="btn-green">Search</button>
+        <a href="manage_inventory.php?export=true" class="btn-green" style="margin-left: 10px;">Export CSV</a>
     </form>
 
     <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
         <tr style="background: #333; color: white;">
-            <th>ID</th>
+            <th>No.</th>
             <th>Category</th>
             <th>Part Name</th>
             <th>Supplier</th>
@@ -130,9 +152,14 @@ require_once '../includes/header.php';
             <th>Actions</th>
         </tr>
         <?php if (count($inventoryItems) > 0): ?>
+            <?php 
+                // Initialize Counter
+                $rowNumber = 1; 
+            ?>
             <?php foreach ($inventoryItems as $item): ?>
                 <tr style="border-bottom: 1px solid #eee;">
-                    <td><?php echo $item['id']; ?></td>
+                    <td><?php echo $rowNumber++; ?></td>
+                    
                     <td><?php echo htmlspecialchars($item['category']); ?></td>
                     <td><b><?php echo htmlspecialchars($item['part_name']); ?></b></td>
                     <td><?php echo htmlspecialchars($item['supplier']); ?></td>
@@ -142,6 +169,7 @@ require_once '../includes/header.php';
                     </td>
                     <td>
                         <button onclick="alert('To edit, please delete and re-add.');" style="cursor: pointer; padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px;">Edit</button>
+                        
                         <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this item?');">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="part_id" value="<?php echo $item['id']; ?>">
