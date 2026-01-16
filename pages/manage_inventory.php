@@ -17,7 +17,6 @@ $message = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $action = $_POST['action'];
-        // Safe data collection
         $data = [
             'id' => $_POST['part_id'] ?? null,
             'part_name' => trim($_POST['part_name'] ?? ''),
@@ -38,7 +37,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $searchTerm = $_GET['search'] ?? '';
 $inventoryItems = getInventory($conn, $searchTerm);
 $stats = getDashboardStats($conn);
-$logs = getRecentLogs($conn);
 
 $pageTitle = 'Inventory Manager';
 require_once '../includes/header.php'; 
@@ -46,44 +44,59 @@ require_once '../includes/header.php';
 
 <link rel="stylesheet" href="../css/style.css">
 
+<style>
+    .btn-green {
+        background-color: #28a745; /* Nice Green */
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        text-decoration: none;
+    }
+    .btn-green:hover {
+        background-color: #218838; /* Darker Green on hover */
+    }
+</style>
+
 <div class="container">
     <h1>Inventory Management</h1>
-    <h3>Overview</h3>
     
     <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-        <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px;">
+        <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px; border-left: 5px solid #007bff;">
             <h3>Total Items</h3>
             <p style="font-size: 24px; font-weight: bold; margin: 0;"><?php echo $stats['total_items']; ?></p>
         </div>
-        <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px;">
+        <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px; border-left: 5px solid #dc3545;">
             <h3>Low Stock Alerts</h3>
-            <p style="font-size: 24px; font-weight: bold; margin: 0; color: #d9534f;"><?php echo $stats['low_stock']; ?></p>
+            <p style="font-size: 24px; font-weight: bold; margin: 0; color: #dc3545;"><?php echo $stats['low_stock']; ?></p>
         </div>
-        <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px;">
+        <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px; border-left: 5px solid #6c757d;">
             <h3>Audit Logs</h3>
-            <p><a href="#auditLogTable" style="text-decoration: underline;">View Recent Activity</a></p>
+            <p><a href="view_audit_logs.php" style="text-decoration: none; color: #333; font-weight: bold;">View Full History &rarr;</a></p>
         </div>
     </div>
 
     <?php if ($message): ?>
-        <p style="padding: 10px; background: #eee; border-left: 5px solid #333;">
+        <p style="padding: 10px; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 4px;">
             <?php echo $message; ?>
         </p>
     <?php endif; ?>
 
     <hr>
     <h3>Add New Item</h3>
-    <form method="POST" action="" style="background: #f9f9f9; padding: 20px; border: 1px solid #ddd; margin-bottom: 20px;">
+    <form method="POST" action="" style="background: #f9f9f9; padding: 20px; border: 1px solid #ddd; margin-bottom: 20px; border-radius: 5px;">
         <input type="hidden" name="action" value="add">
         
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <div style="flex: 2;">
                 <label>Part Name:</label><br>
-                <input type="text" name="part_name" required style="width: 100%; padding: 8px;">
+                <input type="text" name="part_name" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="flex: 1;">
                 <label>Category:</label><br>
-                <select name="category" style="width: 100%; padding: 8px;">
+                <select name="category" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                     <option>General</option>
                     <option>Electronics</option>
                     <option>Hardware</option>
@@ -91,23 +104,23 @@ require_once '../includes/header.php';
             </div>
             <div style="flex: 1;">
                 <label>Supplier:</label><br>
-                <input type="text" name="supplier" style="width: 100%; padding: 8px;">
+                <input type="text" name="supplier" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="flex: 1;">
                 <label>Stock:</label><br>
-                <input type="number" name="quantity" required style="width: 100%; padding: 8px;">
+                <input type="number" name="quantity" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="display: flex; align-items: flex-end;">
-                <button type="submit" class="btn">Add Item</button>
+                <button type="submit" class="btn-green">Add Item</button>
             </div>
         </div>
     </form>
 
     <h3>Current Stock</h3>
-    <form method="GET" style="margin-bottom: 10px;">
-        <input type="text" name="search" placeholder="Search..." value="<?php echo htmlspecialchars($searchTerm); ?>" style="padding: 5px;">
-        <button type="submit" class="btn">Search</button>
-        <a href="manage_inventory.php?export=true" style="margin-left: 10px;">[Export to CSV]</a>
+    <form method="GET" style="margin-bottom: 10px; display: flex; gap: 5px;">
+        <input type="text" name="search" placeholder="Search part name..." value="<?php echo htmlspecialchars($searchTerm); ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        <button type="submit" class="btn-green">Search</button>
+        <a href="manage_inventory.php?export=true" class="btn-green" style="margin-left: 10px;">Export CSV</a>
     </form>
 
     <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
@@ -121,7 +134,7 @@ require_once '../includes/header.php';
         </tr>
         <?php if (count($inventoryItems) > 0): ?>
             <?php foreach ($inventoryItems as $item): ?>
-                <tr>
+                <tr style="border-bottom: 1px solid #eee;">
                     <td><?php echo $item['id']; ?></td>
                     <td><?php echo htmlspecialchars($item['category']); ?></td>
                     <td><b><?php echo htmlspecialchars($item['part_name']); ?></b></td>
@@ -131,12 +144,12 @@ require_once '../includes/header.php';
                         <?php if($item['stock_level'] < 10) echo " <span style='color:red; font-weight:bold;'>(Low)</span>"; ?>
                     </td>
                     <td>
-                        <button onclick="alert('To edit, delete and re-add this item.');" style="cursor: pointer;">Edit</button>
+                        <button onclick="alert('To edit, please delete and re-add.');" style="cursor: pointer; padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px;">Edit</button>
                         
                         <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this item?');">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="part_id" value="<?php echo $item['id']; ?>">
-                            <button style="color: red; cursor: pointer;">Delete</button>
+                            <button style="cursor: pointer; padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 3px;">Delete</button>
                         </form>
                     </td>
                 </tr>
@@ -145,23 +158,6 @@ require_once '../includes/header.php';
             <tr><td colspan="6" style="text-align: center;">No items found.</td></tr>
         <?php endif; ?>
     </table>
-
-    <h3 id="auditLogTable">Recent Audit Logs</h3>
-    <table border="1" cellpadding="5" cellspacing="0" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
-        <tr style="background: #eee;">
-            <th>User</th>
-            <th>Action</th>
-            <th>Time</th>
-        </tr>
-        <?php foreach ($logs as $log): ?>
-            <tr>
-                <td><?php echo htmlspecialchars($log['username']); ?></td>
-                <td><?php echo htmlspecialchars($log['action']); ?></td>
-                <td><?php echo $log['timestamp']; ?></td>
-            </tr>
-        <?php endforeach; ?>
-    </table>
-    <br><br>
 </div>
 
 <?php require_once '../includes/footer.php'; ?>
