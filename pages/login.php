@@ -7,7 +7,44 @@
 
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . "/../utils/utility.php";
+
+$formSubmitted = false;
+$loginSuccess = false;
+$errorMessage = "";
+$userData = null;
 $pageTitle = 'Login';
+
+define('MAX_LOGIN_ATTEMPTS', 5);
+define('LOCKOUT_TIME_MINUTES', 1);
+
+// --- RATE LIMIT CHECK START ---
+// --- RATE LIMIT CHECK START ---
+$ip_address = $_SERVER['REMOTE_ADDR'];
+$lockout_minutes = LOCKOUT_TIME_MINUTES; // Assign constant to variable for binding
+
+// Count failed attempts using ONLY MySQL's clock
+// We check if attempt_time > (NOW - X minutes)
+$stmt = $conn->prepare("SELECT COUNT(*) FROM login_attempts WHERE ip_address = ? AND attempt_time > (NOW() - INTERVAL ? MINUTE)");
+
+// Bind the parameters: "s" for string (IP), "i" for integer (minutes)
+$stmt->bind_param("si", $ip_address, $lockout_minutes);
+
+$stmt->execute();
+$result = $stmt->get_result();
+$countRow = $result->fetch_array();
+$failed_attempts = $countRow[0];
+$stmt->close();
+
+if ($failed_attempts >= MAX_LOGIN_ATTEMPTS) {
+    $errorMessage = "Too many failed attempts. Please try again in " . LOCKOUT_TIME_MINUTES . " minutes.";
+    
+    // ADD THIS LINE:
+    $formSubmitted = true; // Force the HTML to display the error alert
+    
+    // Skip the rest of the login logic and go straight to HTML
+    goto render;
+}
+// --- RATE LIMIT CHECK END ---
 
 // Start session to check if user is already logged in
 session_start();
@@ -23,12 +60,6 @@ if (isset($_SESSION["username"])):
     endif;
 endif;
 
-
-// Initialize variables for display
-$formSubmitted = false;
-$loginSuccess = false;
-$errorMessage = "";
-$userData = null;
 
 // If form not submitted, skip to HTML (show form)
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -70,21 +101,41 @@ if (!$checkAll) {
 
                 // 6. Verify password
                 if (password_verify($_POST['password'], $userData['password_hash'])) {
-                    // Success!
+                    // --- SUCCESS: RESET ATTEMPTS ---
+                    // If login is successful, delete failed attempts for this IP so they don't get locked out later
+                    $resetStmt = $conn->prepare("DELETE FROM login_attempts WHERE ip_address = ?");
+                    $resetStmt->bind_param("s", $ip_address);
+                    $resetStmt->execute();
+                    $resetStmt->close();
+                    
+                    // Set Session Variables
                     $_SESSION["username"] = $userData["username"];
                     $_SESSION["role"] = $userData["role"];
                     $_SESSION["user_id"] = $userData["id"];
                     $_SESSION["first_name"] = $userData["first_name"];
-
                     $loginSuccess = true;
+
                 } else {
+                    // --- FAILURE: LOG ATTEMPT ---
                     $errorMessage = "Invalid username or password.";
+                    
+                    $logStmt = $conn->prepare("INSERT INTO login_attempts (ip_address, attempt_time) VALUES (?, NOW())");
+                    $logStmt->bind_param("s", $ip_address);
+                    $logStmt->execute();
+                    $logStmt->close();
                 }
 
             } else {
-                // Username not found
+                // --- FAILURE (User not found): LOG ATTEMPT ---
+                // We log this too, to prevent username enumeration/brute force
                 $errorMessage = "Invalid username or password.";
+                
+                $logStmt = $conn->prepare("INSERT INTO login_attempts (ip_address, attempt_time) VALUES (?, NOW())");
+                $logStmt->bind_param("s", $ip_address);
+                $logStmt->execute();
+                $logStmt->close();
             }
+
         } else {
             $errorMessage = "Execution failed: " . $stmt->error;
         }
