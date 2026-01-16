@@ -9,7 +9,7 @@ require_once __DIR__ . '/../config/config.php';
 
 $pageTitle = 'Edit Account';
 
-// 1. Security Check
+// Security Check
 if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "Admin") {
     header("Location: login.php");
     exit;
@@ -23,12 +23,18 @@ $userId = $_GET['id'];
 $error = '';
 $message = '';
 
-// 2. HANDLE FORM SUBMISSION (UPDATE)
+// HANDLE FORM SUBMISSION (UPDATE)
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
+    $username = $_POST['username'];
+    $email = $_POST['email'];
+    $firstName = $_POST['first_name'];
+    $lastName = $_POST['last_name'];
+    $role = $_POST['role'];
+    $phoneNumber = $_POST['phone_number'];
     $isValid = true;
 
-    // A. Validate Basic Fields
+    // Validate Basic Fields
     $requiredFields = ['first_name', 'last_name', 'username', 'email', 'role', 'phone_number'];
     foreach ($requiredFields as $field) {
         if (empty($_POST[$field])) {
@@ -38,7 +44,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    // B. Handle Password Logic (Only if user typed something)
+    // Handle Password Logic (Only if user typed something)
     $password = $_POST['password'];
     $confirmPassword = $_POST['confirm_password'];
     $updatePassword = false;
@@ -61,14 +67,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    // C. Execute Update
     if ($isValid) {
-        $username = $_POST['username'];
-        $email = $_POST['email'];
-        $firstName = $_POST['first_name'];
-        $lastName = $_POST['last_name'];
-        $role = $_POST['role'];
-        $phoneNumber = $_POST['phone_number'];
+        // Validate Email Format
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = "Error: Invalid email format.";
+            $isValid = false;
+        }
+
+        // Validate Role (Security against Inspect Element hacks)
+        $allowedRoles = ['Admin', 'User'];
+        if (!in_array($role, $allowedRoles)) {
+            $error = "Error: Invalid role selected.";
+            $isValid = false;
+        }
+
+        // Validate Phone (Exactly 8 Digits)
+        if (!preg_match("/^[0-9]{8}$/", $phoneNumber)) {
+            $error = "Error: Phone number must be exactly 8 digits.";
+            $isValid = false;
+        }
+    }
+
+    // Execute Update
+    if ($isValid) {
 
         if ($updatePassword) {
             // Update WITH password
@@ -95,7 +116,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// 3. FETCH EXISTING DATA
+// FETCH EXISTING DATA
 $sql = "SELECT id, username, email, first_name, last_name, role, phone_number FROM users WHERE id = ?";
 $userData = null;
 

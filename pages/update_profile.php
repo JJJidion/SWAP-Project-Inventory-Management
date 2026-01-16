@@ -30,6 +30,13 @@ if ($currentUserRole !== 'Admin' && $requestedUserId != $currentUserId) {
 
 // --- 1. HANDLE FORM SUBMISSION (POST) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $firstName   = $_POST['first_name'];
+    $lastName    = $_POST['last_name'];
+    $username    = $_POST['username'];
+    $email       = $_POST['email'];
+    $role        = $_POST['role'];
+    $phoneNumber = $_POST['phone_number'];
     $isValid = true;
 
     // A. Basic Fields Check (Removed Password from this list)
@@ -68,15 +75,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $isValid = false;
         }
     }
-}
 
     if ($isValid) {
-        $firstName   = $_POST['first_name'];
-        $lastName    = $_POST['last_name'];
-        $username    = $_POST['username'];
-        $email       = $_POST['email'];
-        $role        = $_POST['role'];
-        $phoneNumber = $_POST['phone_number'];
+        // Validate Email Format
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = "Error: Invalid email format.";
+            $isValid = false;
+        }
+
+        // Validate Role (Security against Inspect Element hacks)
+        $allowedRoles = ['Admin', 'User'];
+        if (!in_array($role, $allowedRoles)) {
+            $error = "Error: Invalid role selected.";
+            $isValid = false;
+        }
+
+        // Validate Phone (Exactly 8 Digits)
+        if (!preg_match("/^[0-9]{8}$/", $phoneNumber)) {
+            $error = "Error: Phone number must be exactly 8 digits.";
+            $isValid = false;
+        }
+    }
+
+    if ($isValid) {
 
         // C. Database Update Logic
         if ($updatePassword) {
@@ -101,6 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+}
 
 // --- 2. FETCH USER DATA (GET) ---
 $sql = "SELECT id, username, email, first_name, last_name, role, phone_number FROM users WHERE id = ?";

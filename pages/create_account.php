@@ -19,8 +19,15 @@ $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $isValid = true;
-
-    // 1. Basic Empty Check
+    $firstName = $_POST['first_name'];
+    $lastName = $_POST['last_name'];
+    $username = $_POST['username'];
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+    $role = $_POST['role'];
+    $phoneNumber = $_POST['phone_number'];
+    
+    // Basic Empty Check
     if (empty($_POST['first_name']) ||
         empty($_POST['last_name']) ||
         empty($_POST['username']) ||
@@ -34,13 +41,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $isValid = false;
     }
 
-    // 2. Password Match Check
+    if ($isValid) {
+        // Validate Email Format
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = "Error: Invalid email format.";
+            $isValid = false;
+        }
+
+        // Validate Role (Security against Inspect Element hacks)
+        $allowedRoles = ['Admin', 'User'];
+        if (!in_array($role, $allowedRoles)) {
+            $error = "Error: Invalid role selected.";
+            $isValid = false;
+        }
+
+        // Validate Phone (Exactly 8 Digits)
+        if (!preg_match("/^[0-9]{8}$/", $phoneNumber)) {
+            $error = "Error: Phone number must be exactly 8 digits.";
+            $isValid = false;
+        }
+    }
+
+    // Password Match Check
     if ($isValid && $_POST['password'] !== $_POST['confirm_password']) {
         $error = "Error: Passwords do not match";
         $isValid = false;
     }
 
-    // 3. Password Complexity Check (Server-Side Security)
+    // Password Complexity Check (Server-Side Security)
     // Rules: Min 10 chars, 1 Uppercase, 1 Lowercase, 1 Number, 1 Special Char
     if ($isValid) {
         $pwd = $_POST['password'];
@@ -58,13 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($isValid) {
-        $firstName = $_POST['first_name'];
-        $lastName = $_POST['last_name'];
-        $username = $_POST['username'];
-        $email = $_POST['email'];
-        $password = $_POST['password'];
-        $role = $_POST['role'];
-        $phoneNumber = $_POST['phone_number'];
 
         $passwordHash = password_hash($password, PASSWORD_BCRYPT);
 
