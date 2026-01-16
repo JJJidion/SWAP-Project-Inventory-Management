@@ -1,12 +1,3 @@
-Here is the full, final code for pages/manage_inventory.php.
-
-I have applied the Row Number fix. Now, instead of showing the database ID (like "4"), it will count 1, 2, 3... in the table, but it still keeps the real ID hidden in the background so the Delete button works perfectly.
-
-📄 File: pages/manage_inventory.php
-Copy and paste this entire block.
-
-PHP
-
 <?php
 // pages/manage_inventory.php
 session_start();
