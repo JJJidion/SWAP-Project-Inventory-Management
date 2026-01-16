@@ -36,7 +36,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // --- FETCH DATA ---
 $searchTerm = $_GET['search'] ?? '';
 $inventoryItems = getInventory($conn, $searchTerm);
-$stats = getDashboardStats($conn);
+
+// --- NEW STATS CALCULATION (Fixes the "0" issue) ---
+// Instead of asking the DB, we count the array we just fetched.
+// This guarantees the Dashboard matches the Table exactly.
+$totalItems = count($inventoryItems);
+$lowStockCount = 0;
+foreach ($inventoryItems as $item) {
+    if ($item['stock_level'] < 10) {
+        $lowStockCount++;
+    }
+}
+
+// Get Logs for the audit section
+$logs = getRecentLogs($conn);
 
 $pageTitle = 'Inventory Manager';
 require_once '../includes/header.php'; 
@@ -44,33 +57,17 @@ require_once '../includes/header.php';
 
 <link rel="stylesheet" href="../css/style.css">
 
-<style>
-    .btn-green {
-        background-color: #28a745; /* Nice Green */
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: bold;
-        text-decoration: none;
-    }
-    .btn-green:hover {
-        background-color: #218838; /* Darker Green on hover */
-    }
-</style>
-
 <div class="container">
     <h1>Inventory Management</h1>
     
     <div style="display: flex; gap: 20px; margin-bottom: 20px;">
         <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px; border-left: 5px solid #007bff;">
             <h3>Total Items</h3>
-            <p style="font-size: 24px; font-weight: bold; margin: 0;"><?php echo $stats['total_items']; ?></p>
+            <p style="font-size: 24px; font-weight: bold; margin: 0;"><?php echo $totalItems; ?></p>
         </div>
-        <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px; border-left: 5px solid #dc3545;">
+        <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px; border-left: 5px solid #ffc107;">
             <h3>Low Stock Alerts</h3>
-            <p style="font-size: 24px; font-weight: bold; margin: 0; color: #dc3545;"><?php echo $stats['low_stock']; ?></p>
+            <p style="font-size: 24px; font-weight: bold; margin: 0; color: #d9534f;"><?php echo $lowStockCount; ?></p>
         </div>
         <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px; border-left: 5px solid #6c757d;">
             <h3>Audit Logs</h3>
@@ -111,7 +108,7 @@ require_once '../includes/header.php';
                 <input type="number" name="quantity" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="display: flex; align-items: flex-end;">
-                <button type="submit" class="btn-green">Add Item</button>
+                <button type="submit" class="btn" style="background-color: #007bff; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">Add Item</button>
             </div>
         </div>
     </form>
@@ -119,8 +116,8 @@ require_once '../includes/header.php';
     <h3>Current Stock</h3>
     <form method="GET" style="margin-bottom: 10px; display: flex; gap: 5px;">
         <input type="text" name="search" placeholder="Search part name..." value="<?php echo htmlspecialchars($searchTerm); ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-        <button type="submit" class="btn-green">Search</button>
-        <a href="manage_inventory.php?export=true" class="btn-green" style="margin-left: 10px;">Export CSV</a>
+        <button type="submit" class="btn" style="background-color: #007bff; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer;">Search</button>
+        <a href="manage_inventory.php?export=true" class="btn" style="background-color: #28a745; color: white; padding: 8px 15px; border: none; border-radius: 4px; text-decoration: none;">Export CSV</a>
     </form>
 
     <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
@@ -145,7 +142,6 @@ require_once '../includes/header.php';
                     </td>
                     <td>
                         <button onclick="alert('To edit, please delete and re-add.');" style="cursor: pointer; padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px;">Edit</button>
-                        
                         <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this item?');">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="part_id" value="<?php echo $item['id']; ?>">
