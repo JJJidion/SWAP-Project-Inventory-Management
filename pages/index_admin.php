@@ -27,12 +27,21 @@ $pageTitle = 'Admin Dashboard';
 
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
-    <div class="container">
-        <h1>Admin Dashboard</h1>
-        <h3>Welcome, <?php echo $_SESSION["first_name"]; ?>!</h3>
+    
+    <div class="container mt-5"> <h1>Admin Dashboard</h1>
+        <h3>Welcome, <?php echo htmlspecialchars($_SESSION["first_name"]); ?>!</h3>
         <br>
-        <button type="button" class="btn btn-primary" onclick="window.location.href='account_management.php';">Account Management</button>
+        
+        <button type="button" class="btn btn-primary" onclick="window.location.href='account_management.php';">
+            Account Management
+        </button>
+
+        <button type="button" class="btn btn-success ms-2" onclick="window.location.href='manage_inventory.php';">
+            📦 Manage Inventory
+        </button>
+
     </div>
+
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>
 </html>

@@ -7,8 +7,8 @@ require_once '../includes/header.php'; // Your site header
 
 // --- SECURITY: Access Control ---
 // Change 'Inventory Manager' to match your DB role exactly
-if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'Inventory Manager') {
-    echo "<div class='container mt-5'><div class='alert alert-danger'>⛔ Access Denied: Managers only.</div></div>";
+if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'Inventory Manager' && $_SESSION['role'] !== 'Admin')) {
+    echo "<div class='container mt-5'><div class='alert alert-danger'>⛔ Access Denied.</div></div>";
     require_once '../includes/footer.php';
     exit();
 }

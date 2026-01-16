@@ -1,16 +1,13 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Host: 127.0.0.1:3306:3307
--- Generation Time: Jan 12, 2026 at 03:33 PM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.1.25
+-- 1. Create the database if it doesn't exist
+CREATE DATABASE IF NOT EXISTS `inv_management_db`;
 
+-- 2. Select the database to use
+USE `inv_management_db`;
+
+-- 3. Set up configurations
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
-
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -18,15 +15,10 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `inv_management_db`
---
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `users`
 --
 
+DROP TABLE IF EXISTS `users`; -- Safety measure to prevent errors if table exists
 CREATE TABLE `users` (
   `id` int(11) NOT NULL,
   `email` varchar(255) NOT NULL,
@@ -49,10 +41,6 @@ INSERT INTO `users` (`id`, `email`, `username`, `password_hash`, `role`, `first_
 (2, 'user@gmail.com', 'User', '$2y$10$FUAlQQdWuKOgh0QQKpBoL.0QqOTdT3i6Yxhez4Y2/tcxzPG/5iRCu', 'User', 'Jimmy', 'Lee', '12345678', '2026-01-11 08:31:30', '2026-01-12 14:31:55');
 
 --
--- Indexes for dumped tables
---
-
---
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -61,14 +49,11 @@ ALTER TABLE `users`
   ADD UNIQUE KEY `phone_number` (`phone_number`);
 
 --
--- AUTO_INCREMENT for dumped tables
---
-
---
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
