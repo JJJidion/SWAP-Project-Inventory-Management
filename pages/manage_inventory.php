@@ -4,6 +4,14 @@ session_start();
 require_once '../config/config.php';
 require_once '../utils/inventory_logic.php';
 
+// --- IMPROVEMENT: HTTP SECURITY HEADERS (OWASP Best Practices) ---
+// 1. Prevent Clickjacking
+header("X-Frame-Options: DENY");
+// 2. Prevent MIME-sniffing
+header("X-Content-Type-Options: nosniff");
+// 3. Enable XSS Protection (for older browsers)
+header("X-XSS-Protection: 1; mode=block");
+
 // --- ACCESS CONTROL ---
 if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'Inventory Manager' && $_SESSION['role'] !== 'Admin')) {
     require_once '../includes/header.php';
@@ -12,47 +20,43 @@ if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'Inventory Manager' && $
     exit();
 }
 
-// --- CSV EXPORT LOGIC ---
+// --- CSV EXPORT ---
 if (isset($_GET['export']) && $_GET['export'] == 'true') {
     header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="inventory_report_' . date('Y-m-d') . '.csv"');
+    header('Content-Disposition: attachment; filename="inventory_report.csv"');
     $output = fopen('php://output', 'w');
-    fputcsv($output, array('ID', 'Part Name', 'Category', 'Supplier', 'Stock Level', 'Status', 'Last Updated'));
-    
-    $items = getInventory($conn, ''); // Get all items
+    fputcsv($output, array('ID', 'Part Name', 'Category', 'Supplier', 'Stock', 'Status', 'Updated At'));
+    $items = getInventory($conn, '');
     foreach ($items as $item) {
-        $status = ($item['stock_level'] < 10) ? (($item['stock_level'] == 0) ? 'Out of Stock' : 'Low Stock') : 'In Stock';
-        fputcsv($output, array($item['id'], $item['part_name'], $item['category'], $item['supplier'], $item['stock_level'], $status, $item['updated_at']));
+        // Logic to determine status text
+        $statusText = ($item['stock_level'] == 0) ? 'Out of Stock' : (($item['stock_level'] < 10) ? 'Low Stock' : 'In Stock');
+        fputcsv($output, array($item['id'], $item['part_name'], $item['category'], $item['supplier'], $item['stock_level'], $statusText, $item['updated_at']));
     }
     fclose($output);
     exit();
 }
 
-// --- CSRF & FORM HANDLING ---
+// --- FORM HANDLING ---
 if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-
-$message = "";
-$messageType = "";
+$message = ""; $messageType = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) die("CSRF Fail");
-    
     try {
         $action = $_POST['action'];
         $data = [
             'id' => $_POST['part_id'] ?? null,
             'part_name' => trim($_POST['part_name']),
-            'category' => $_POST['category'] ?? 'General', // NEW
-            'supplier' => trim($_POST['supplier'] ?? ''),   // NEW
+            'category' => $_POST['category'] ?? 'General',
+            'supplier' => trim($_POST['supplier'] ?? ''),
             'quantity' => $_POST['quantity'] ?? 0
         ];
-        $userId = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0;
+        // Use user ID from session
+        $userId = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 1;
         manageInventory($conn, $action, $data, $userId);
-        $message = "Action '$action' successful!";
-        $messageType = "success";
+        $message = "Action '$action' successful!"; $messageType = "success";
     } catch (Exception $e) {
-        $message = "Error: " . $e->getMessage();
-        $messageType = "danger";
+        $message = "Error: " . $e->getMessage(); $messageType = "danger";
     }
 }
 
@@ -69,7 +73,6 @@ require_once '../includes/header.php';
     
     <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
         <h2>📦 Inventory Management</h2>
-        
         <div class="d-flex gap-2">
             <form class="d-flex" method="GET" action="">
                 <input class="form-control me-2" type="search" name="search" placeholder="Search..." value="<?php echo htmlspecialchars($searchTerm); ?>">
@@ -86,20 +89,18 @@ require_once '../includes/header.php';
         </div>
     <?php endif; ?>
 
-    <div class="card mb-4 shadow-sm border-0 bg-light">
+    <div class="card mb-4 shadow-sm bg-light">
         <div class="card-body">
             <h5 class="card-title text-primary mb-3" id="cardTitle">➕ Add New Item</h5>
             <form method="POST" action="" class="row g-3">
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 <input type="hidden" name="action" value="add" id="formAction">
-                
                 <input type="hidden" name="part_id" id="inputID">
 
                 <div class="col-md-3">
                     <label class="form-label fw-bold">Part Name</label>
                     <input type="text" name="part_name" id="inputName" class="form-control" required>
                 </div>
-                
                 <div class="col-md-3">
                     <label class="form-label fw-bold">Category</label>
                     <select name="category" id="inputCategory" class="form-select">
@@ -107,20 +108,16 @@ require_once '../includes/header.php';
                         <option value="Electronics">Electronics</option>
                         <option value="Hardware">Hardware</option>
                         <option value="Software">Software</option>
-                        <option value="Cables">Cables</option>
                     </select>
                 </div>
-
                 <div class="col-md-3">
                     <label class="form-label fw-bold">Supplier</label>
-                    <input type="text" name="supplier" id="inputSupplier" class="form-control" placeholder="e.g. Acme Corp">
+                    <input type="text" name="supplier" id="inputSupplier" class="form-control">
                 </div>
-
                 <div class="col-md-1">
                     <label class="form-label fw-bold">Stock</label>
                     <input type="number" name="quantity" id="inputQty" class="form-control" required>
                 </div>
-
                 <div class="col-md-2 d-flex align-items-end">
                     <div class="w-100">
                         <button type="submit" id="submitBtn" class="btn btn-primary w-100">Add</button>
@@ -149,8 +146,7 @@ require_once '../includes/header.php';
                     <?php if (count($inventoryItems) > 0): ?>
                         <?php foreach ($inventoryItems as $item): ?>
                             <?php 
-                                $badge = "success";
-                                $text = "In Stock";
+                                $badge = "success"; $text = "In Stock";
                                 if ($item['stock_level'] == 0) { $badge = "danger"; $text = "Out of Stock"; }
                                 elseif ($item['stock_level'] < 10) { $badge = "warning text-dark"; $text = "Low Stock"; }
                             ?>
@@ -163,15 +159,10 @@ require_once '../includes/header.php';
                                 <td><span class="badge bg-<?php echo $badge; ?>"><?php echo $text; ?></span></td>
                                 <td>
                                     <button class="btn btn-sm btn-outline-primary" 
-                                        onclick="editItem(
-                                            '<?php echo $item['id']; ?>', 
-                                            '<?php echo addslashes($item['part_name']); ?>', 
-                                            '<?php echo $item['stock_level']; ?>',
-                                            '<?php echo addslashes($item['category']); ?>',
-                                            '<?php echo addslashes($item['supplier']); ?>'
-                                        )">✏️</button>
-                                    
-                                    <form method="POST" class="d-inline" onsubmit="return confirm('Delete?');">
+                                        onclick="editItem('<?php echo $item['id']; ?>', '<?php echo addslashes($item['part_name']); ?>', '<?php echo $item['stock_level']; ?>', '<?php echo addslashes($item['category']); ?>', '<?php echo addslashes($item['supplier']); ?>')">
+                                        ✏️
+                                    </button>
+                                    <form method="POST" class="d-inline" onsubmit="return confirm('Confirm Deletion? This will act as a Soft Delete for audit purposes.');">
                                         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="part_id" value="<?php echo $item['id']; ?>">
@@ -181,7 +172,7 @@ require_once '../includes/header.php';
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="7" class="text-center py-4">No items found.</td></tr>
+                        <tr><td colspan="7" class="text-center py-4">No active items found.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -197,14 +188,12 @@ function editItem(id, name, qty, cat, supp) {
     document.getElementById('inputQty').value = qty;
     document.getElementById('inputCategory').value = cat;
     document.getElementById('inputSupplier').value = supp;
-
     document.getElementById('cardTitle').innerText = '✏️ Edit Item #' + id;
-    document.getElementById('submitBtn').innerText = 'Save Changes';
+    document.getElementById('submitBtn').innerText = 'Save';
     document.getElementById('submitBtn').classList.replace('btn-primary', 'btn-warning');
     document.getElementById('cancelBtn').classList.remove('d-none');
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
 function resetForm() {
     document.getElementById('formAction').value = 'add';
     document.getElementById('inputID').value = '';
@@ -212,7 +201,6 @@ function resetForm() {
     document.getElementById('inputQty').value = '';
     document.getElementById('inputCategory').value = 'General';
     document.getElementById('inputSupplier').value = '';
-
     document.getElementById('cardTitle').innerText = '➕ Add New Item';
     document.getElementById('submitBtn').innerText = 'Add';
     document.getElementById('submitBtn').classList.replace('btn-warning', 'btn-primary');
