@@ -1,27 +1,20 @@
 <?php
 // utils/inventory_logic.php
 
-/**
- * Fetch inventory items, optionally filtering by a search term.
- * (MySQLi Version)
- */
 function getInventory($conn, $search = '') {
+    // ... (Keep your existing getInventory code exactly as is) ...
+    // Just paste the manageInventory below this function.
     $items = [];
     try {
         if (!empty($search)) {
-            // Prepare statement for search
-            $stmt = $conn->prepare("SELECT * FROM inventory WHERE part_name LIKE ? OR id = ? ORDER BY id ASC");
+            $stmt = $conn->prepare("SELECT * FROM inventory WHERE part_name LIKE ? OR category LIKE ? OR id = ? ORDER BY id ASC");
             $searchTerm = "%$search%";
-            // Bind parameters: "ss" means string, string
-            $stmt->bind_param("ss", $searchTerm, $search);
+            $stmt->bind_param("sss", $searchTerm, $searchTerm, $search);
             $stmt->execute();
             $result = $stmt->get_result();
         } else {
-            // Simple query
             $result = $conn->query("SELECT * FROM inventory ORDER BY id ASC");
         }
-
-        // Fetch all rows
         while ($row = $result->fetch_assoc()) {
             $items[] = $row;
         }
@@ -31,65 +24,51 @@ function getInventory($conn, $search = '') {
     }
 }
 
-/**
- * Handles Add, Update, and Delete operations with Audit Logging.
- * (MySQLi Version)
- */
 function manageInventory($conn, $action, $data, $userId) {
-    // 1. Validation Logic
+    // 1. Validation
     if ($action === 'add' || $action === 'update') {
-        if ($data['quantity'] < 0) {
-            throw new Exception("Stock level cannot be negative.");
-        }
-        if (empty($data['part_name']) && $action === 'add') {
-            throw new Exception("Part Name is required.");
-        }
+        if ($data['quantity'] < 0) throw new Exception("Stock cannot be negative.");
+        if (empty($data['part_name'])) throw new Exception("Part Name is required.");
     }
 
     try {
-        // Start Transaction
         $conn->begin_transaction();
-
         $logDetails = "";
 
-        // 2. Execution Logic
         if ($action === 'add') {
-            $stmt = $conn->prepare("INSERT INTO inventory (part_name, stock_level) VALUES (?, ?)");
-            // "si" means String, Integer
-            $stmt->bind_param("si", $data['part_name'], $data['quantity']);
+            // Updated SQL to include Category and Supplier
+            $stmt = $conn->prepare("INSERT INTO inventory (part_name, category, supplier, stock_level) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("sssi", $data['part_name'], $data['category'], $data['supplier'], $data['quantity']);
             $stmt->execute();
             $newId = $conn->insert_id;
-            $logDetails = "Added Part ID $newId: '{$data['part_name']}' with Stock {$data['quantity']}";
+            $logDetails = "Added Part ID $newId: '{$data['part_name']}' ({$data['category']})";
 
         } elseif ($action === 'update') {
-            $stmt = $conn->prepare("UPDATE inventory SET stock_level = ?, part_name = ? WHERE id = ?");
-            // "isi" means Integer, String, Integer
-            $stmt->bind_param("isi", $data['quantity'], $data['part_name'], $data['id']);
+            // Updated SQL
+            $stmt = $conn->prepare("UPDATE inventory SET stock_level = ?, part_name = ?, category = ?, supplier = ? WHERE id = ?");
+            $stmt->bind_param("isssi", $data['quantity'], $data['part_name'], $data['category'], $data['supplier'], $data['id']);
             $stmt->execute();
-            $logDetails = "Updated Part ID {$data['id']}: Stock set to {$data['quantity']}";
+            $logDetails = "Updated Part ID {$data['id']}: Stock {$data['quantity']}, Cat: {$data['category']}";
 
         } elseif ($action === 'delete') {
-            // Get name first for logging
+            // (Keep existing delete logic)
             $stmtGet = $conn->prepare("SELECT part_name FROM inventory WHERE id = ?");
             $stmtGet->bind_param("i", $data['id']);
             $stmtGet->execute();
             $res = $stmtGet->get_result();
             $part = $res->fetch_assoc();
-            $partName = $part ? $part['part_name'] : 'Unknown';
-
-            // Delete
+            
             $stmt = $conn->prepare("DELETE FROM inventory WHERE id = ?");
             $stmt->bind_param("i", $data['id']);
             $stmt->execute();
-            $logDetails = "Deleted Part ID {$data['id']} ($partName)";
+            $logDetails = "Deleted Part ID {$data['id']} ({$part['part_name']})";
         }
 
-        // 3. Audit Log
+        // Audit Log
         $logStmt = $conn->prepare("INSERT INTO audit_logs (user_id, action, timestamp) VALUES (?, ?, NOW())");
         $logStmt->bind_param("is", $userId, $logDetails);
         $logStmt->execute();
 
-        // Commit changes
         $conn->commit();
         return true;
     } catch (Exception $e) {

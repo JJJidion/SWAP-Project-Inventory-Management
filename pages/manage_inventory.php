@@ -1,11 +1,10 @@
 <?php
 // pages/manage_inventory.php
 session_start();
-require_once '../config/config.php';   
-require_once '../utils/inventory_logic.php'; 
+require_once '../config/config.php';
+require_once '../utils/inventory_logic.php';
 
-// --- SECURITY CHECK ---
-// Allow Admin OR Inventory Manager
+// --- ACCESS CONTROL ---
 if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'Inventory Manager' && $_SESSION['role'] !== 'Admin')) {
     require_once '../includes/header.php';
     echo "<div class='container mt-5'><div class='alert alert-danger'>⛔ Access Denied.</div></div>";
@@ -13,31 +12,43 @@ if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'Inventory Manager' && $
     exit();
 }
 
-// --- CSRF TOKEN ---
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+// --- CSV EXPORT LOGIC ---
+if (isset($_GET['export']) && $_GET['export'] == 'true') {
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="inventory_report_' . date('Y-m-d') . '.csv"');
+    $output = fopen('php://output', 'w');
+    fputcsv($output, array('ID', 'Part Name', 'Category', 'Supplier', 'Stock Level', 'Status', 'Last Updated'));
+    
+    $items = getInventory($conn, ''); // Get all items
+    foreach ($items as $item) {
+        $status = ($item['stock_level'] < 10) ? (($item['stock_level'] == 0) ? 'Out of Stock' : 'Low Stock') : 'In Stock';
+        fputcsv($output, array($item['id'], $item['part_name'], $item['category'], $item['supplier'], $item['stock_level'], $status, $item['updated_at']));
+    }
+    fclose($output);
+    exit();
 }
 
-// --- HANDLE FORM ACTIONS ---
+// --- CSRF & FORM HANDLING ---
+if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
 $message = "";
 $messageType = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-        die("CSRF Validation Failed");
-    }
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) die("CSRF Fail");
+    
     try {
         $action = $_POST['action'];
         $data = [
             'id' => $_POST['part_id'] ?? null,
-            'part_name' => trim($_POST['part_name'] ?? ''),
+            'part_name' => trim($_POST['part_name']),
+            'category' => $_POST['category'] ?? 'General', // NEW
+            'supplier' => trim($_POST['supplier'] ?? ''),   // NEW
             'quantity' => $_POST['quantity'] ?? 0
         ];
-        // Pass session ID correctly
-        $userId = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0; 
+        $userId = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0;
         manageInventory($conn, $action, $data, $userId);
-        
-        $message = ucfirst($action) . " action completed successfully!";
+        $message = "Action '$action' successful!";
         $messageType = "success";
     } catch (Exception $e) {
         $message = "Error: " . $e->getMessage();
@@ -45,10 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// --- FETCH DATA ---
 $searchTerm = $_GET['search'] ?? '';
 $inventoryItems = getInventory($conn, $searchTerm);
-
 $pageTitle = 'Manage Inventory';
 require_once '../includes/header.php'; 
 ?>
@@ -61,46 +70,62 @@ require_once '../includes/header.php';
     <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
         <h2>📦 Inventory Management</h2>
         
-        <form class="d-flex" method="GET" action="">
-            <input class="form-control me-2" type="search" name="search" placeholder="Search part name..." value="<?php echo htmlspecialchars($searchTerm); ?>">
-            <button class="btn btn-primary" type="submit">Search</button>
-            <?php if($searchTerm): ?>
-                <a href="manage_inventory.php" class="btn btn-outline-secondary ms-2">Reset</a>
-            <?php endif; ?>
-        </form>
+        <div class="d-flex gap-2">
+            <form class="d-flex" method="GET" action="">
+                <input class="form-control me-2" type="search" name="search" placeholder="Search..." value="<?php echo htmlspecialchars($searchTerm); ?>">
+                <button class="btn btn-primary" type="submit">Search</button>
+            </form>
+            <a href="manage_inventory.php?export=true" class="btn btn-success">📥 Export CSV</a>
+        </div>
     </div>
 
     <?php if ($message): ?>
-        <div class="alert alert-<?php echo $messageType; ?> alert-dismissible fade show" role="alert">
-            <strong><?php echo ($messageType == 'success') ? 'Success!' : 'Error!'; ?></strong> <?php echo $message; ?>
+        <div class="alert alert-<?php echo $messageType; ?> alert-dismissible fade show">
+            <strong><?php echo ($messageType == 'success') ? 'Done!' : 'Error!'; ?></strong> <?php echo $message; ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-dark text-white">
-            <h5 class="mb-0" id="cardTitle">➕ Add New Item</h5>
-        </div>
+    <div class="card mb-4 shadow-sm border-0 bg-light">
         <div class="card-body">
-            <form method="POST" action="" class="row g-3 align-items-end">
+            <h5 class="card-title text-primary mb-3" id="cardTitle">➕ Add New Item</h5>
+            <form method="POST" action="" class="row g-3">
                 <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                 <input type="hidden" name="action" value="add" id="formAction">
                 
-                <div class="col-md-2">
-                    <label class="form-label fw-bold">Part ID</label>
-                    <input type="text" name="part_id" id="inputID" class="form-control bg-light" placeholder="Auto" readonly>
-                </div>
-                <div class="col-md-5">
-                    <label class="form-label fw-bold">Part Name</label>
-                    <input type="text" name="part_name" id="inputName" class="form-control" placeholder="e.g. Brake Pad" required>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-bold">Stock Level</label>
-                    <input type="number" name="quantity" id="inputQty" class="form-control" placeholder="0" required>
-                </div>
+                <input type="hidden" name="part_id" id="inputID">
+
                 <div class="col-md-3">
-                    <button type="submit" id="submitBtn" class="btn btn-success w-100 fw-bold">Add Item</button>
-                    <button type="button" id="cancelBtn" class="btn btn-secondary w-100 mt-2 d-none" onclick="resetForm()">Cancel Edit</button>
+                    <label class="form-label fw-bold">Part Name</label>
+                    <input type="text" name="part_name" id="inputName" class="form-control" required>
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Category</label>
+                    <select name="category" id="inputCategory" class="form-select">
+                        <option value="General">General</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Hardware">Hardware</option>
+                        <option value="Software">Software</option>
+                        <option value="Cables">Cables</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Supplier</label>
+                    <input type="text" name="supplier" id="inputSupplier" class="form-control" placeholder="e.g. Acme Corp">
+                </div>
+
+                <div class="col-md-1">
+                    <label class="form-label fw-bold">Stock</label>
+                    <input type="number" name="quantity" id="inputQty" class="form-control" required>
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="w-100">
+                        <button type="submit" id="submitBtn" class="btn btn-primary w-100">Add</button>
+                        <button type="button" id="cancelBtn" class="btn btn-secondary w-100 mt-1 d-none" onclick="resetForm()">Cancel</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -108,50 +133,55 @@ require_once '../includes/header.php';
 
     <div class="card shadow-sm">
         <div class="card-body p-0">
-            <table class="table table-striped table-hover mb-0 align-middle">
-                <thead class="table-secondary">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-dark">
                     <tr>
-                        <th style="width: 10%;">ID</th>
-                        <th style="width: 40%;">Part Name</th>
-                        <th style="width: 20%;">Stock Level</th>
-                        <th style="width: 15%;">Status</th>
-                        <th style="width: 15%;">Actions</th>
+                        <th>ID</th>
+                        <th>Category</th>
+                        <th>Part Name</th>
+                        <th>Supplier</th>
+                        <th>Stock</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (count($inventoryItems) > 0): ?>
                         <?php foreach ($inventoryItems as $item): ?>
                             <?php 
-                                // Status Logic
-                                $statusBadge = "<span class='badge bg-success'>In Stock</span>";
-                                if ($item['stock_level'] == 0) {
-                                    $statusBadge = "<span class='badge bg-danger'>Out of Stock</span>";
-                                } elseif ($item['stock_level'] < 10) {
-                                    $statusBadge = "<span class='badge bg-warning text-dark'>Low Stock</span>";
-                                }
+                                $badge = "success";
+                                $text = "In Stock";
+                                if ($item['stock_level'] == 0) { $badge = "danger"; $text = "Out of Stock"; }
+                                elseif ($item['stock_level'] < 10) { $badge = "warning text-dark"; $text = "Low Stock"; }
                             ?>
                             <tr>
-                                <td>#<?php echo htmlspecialchars($item['id']); ?></td>
+                                <td>#<?php echo $item['id']; ?></td>
+                                <td><span class="badge bg-secondary"><?php echo htmlspecialchars($item['category']); ?></span></td>
                                 <td class="fw-bold"><?php echo htmlspecialchars($item['part_name']); ?></td>
-                                <td><?php echo htmlspecialchars($item['stock_level']); ?></td>
-                                <td><?php echo $statusBadge; ?></td>
+                                <td class="text-muted small"><?php echo htmlspecialchars($item['supplier']); ?></td>
+                                <td><span class="fs-5"><?php echo $item['stock_level']; ?></span></td>
+                                <td><span class="badge bg-<?php echo $badge; ?>"><?php echo $text; ?></span></td>
                                 <td>
-                                    <button class="btn btn-sm btn-primary me-1" 
-                                        onclick="editItem(<?php echo $item['id']; ?>, '<?php echo addslashes($item['part_name']); ?>', <?php echo $item['stock_level']; ?>)">
-                                        ✏️
-                                    </button>
-
-                                    <form method="POST" action="" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this item?');">
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="editItem(
+                                            '<?php echo $item['id']; ?>', 
+                                            '<?php echo addslashes($item['part_name']); ?>', 
+                                            '<?php echo $item['stock_level']; ?>',
+                                            '<?php echo addslashes($item['category']); ?>',
+                                            '<?php echo addslashes($item['supplier']); ?>'
+                                        )">✏️</button>
+                                    
+                                    <form method="POST" class="d-inline" onsubmit="return confirm('Delete?');">
                                         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="part_id" value="<?php echo $item['id']; ?>">
-                                        <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                                        <button class="btn btn-sm btn-outline-danger">🗑️</button>
                                     </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="5" class="text-center py-4 text-muted">No items found.</td></tr>
+                        <tr><td colspan="7" class="text-center py-4">No items found.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -160,40 +190,32 @@ require_once '../includes/header.php';
 </div>
 
 <script>
-function editItem(id, name, qty) {
-    // Fill Form
+function editItem(id, name, qty, cat, supp) {
     document.getElementById('formAction').value = 'update';
     document.getElementById('inputID').value = id;
     document.getElementById('inputName').value = name;
     document.getElementById('inputQty').value = qty;
-    
-    // Change UI to Edit Mode
+    document.getElementById('inputCategory').value = cat;
+    document.getElementById('inputSupplier').value = supp;
+
     document.getElementById('cardTitle').innerText = '✏️ Edit Item #' + id;
-    const btn = document.getElementById('submitBtn');
-    btn.className = 'btn btn-warning w-100 fw-bold';
-    btn.innerText = 'Save Changes';
-    
-    // Show Cancel Button
+    document.getElementById('submitBtn').innerText = 'Save Changes';
+    document.getElementById('submitBtn').classList.replace('btn-primary', 'btn-warning');
     document.getElementById('cancelBtn').classList.remove('d-none');
-    
-    // Scroll to Top
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function resetForm() {
-    // Clear Form
     document.getElementById('formAction').value = 'add';
     document.getElementById('inputID').value = '';
     document.getElementById('inputName').value = '';
     document.getElementById('inputQty').value = '';
-    
-    // Reset UI to Add Mode
+    document.getElementById('inputCategory').value = 'General';
+    document.getElementById('inputSupplier').value = '';
+
     document.getElementById('cardTitle').innerText = '➕ Add New Item';
-    const btn = document.getElementById('submitBtn');
-    btn.className = 'btn btn-success w-100 fw-bold';
-    btn.innerText = 'Add Item';
-    
-    // Hide Cancel Button
+    document.getElementById('submitBtn').innerText = 'Add';
+    document.getElementById('submitBtn').classList.replace('btn-warning', 'btn-primary');
     document.getElementById('cancelBtn').classList.add('d-none');
 }
 </script>
