@@ -134,7 +134,7 @@ require_once '../includes/header.php';
     </form>
 
     <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
-        <tr style="background: #333; color: white;">
+        <tr style="background: #333; color: #333;">
             <th>No.</th>
             <th>Category</th>
             <th>Part Name</th>
