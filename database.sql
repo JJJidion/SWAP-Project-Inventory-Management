@@ -77,6 +77,28 @@ CREATE TABLE `audit_logs` (
 
 COMMIT;
 
+-- 1. Optional: Clear existing items to start fresh
+TRUNCATE TABLE `inventory`;
+
+-- 2. Insert 10 Realistic Items
+-- We include varied stock levels to test your Red/Yellow/Green badges.
+
+INSERT INTO `inventory` (`part_name`, `category`, `supplier`, `stock_level`) VALUES
+('Wireless Mouse M350', 'Electronics', 'Logitech', 45),
+('HDMI Cable (2m)', 'Hardware', 'Ugreen', 150),
+('Mechanical Keyboard', 'Electronics', 'Keychron', 8),   -- LOW STOCK (<10)
+('Samsung 24" Monitor', 'Electronics', 'Samsung', 12),
+('USB-C Hub', 'Hardware', 'Anker', 0),                  -- OUT OF STOCK (0)
+('Thermal Paste 4g', 'Hardware', 'Arctic', 55),
+('Office Chair (Mesh)', 'General', 'Ikea', 3),          -- LOW STOCK (<10)
+('Desk Lamp', 'General', 'Xiaomi', 20),
+('GTX 1660 Super', 'Electronics', 'NVIDIA', 1),         -- LOW STOCK (<10)
+('AA Batteries (Pack)', 'General', 'Duracell', 200);
+
+-- 3. Add a sample Audit Log entry so the log viewer isn't empty
+INSERT INTO `audit_logs` (`user_id`, `action`, `timestamp`) VALUES 
+(1, 'Generated sample database data', NOW());
+
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
