@@ -64,22 +64,6 @@ CREATE TABLE `inventory` (
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- --------------------------------------------------------
--- 5. Table: audit_logs (Shared Work - Coordinate changes)
--- --------------------------------------------------------
-DROP TABLE IF EXISTS `audit_logs`;
-CREATE TABLE `audit_logs` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `user_id` INT,
-    `action` VARCHAR(255),
-    `timestamp` DATETIME DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-COMMIT;
-
--- 1. Optional: Clear existing items to start fresh
-TRUNCATE TABLE `inventory`;
-
 -- 2. Insert 10 Realistic Items
 -- We include varied stock levels to test your Red/Yellow/Green badges.
 
@@ -94,6 +78,19 @@ INSERT INTO `inventory` (`part_name`, `category`, `supplier`, `stock_level`) VAL
 ('Desk Lamp', 'General', 'Xiaomi', 20),
 ('GTX 1660 Super', 'Electronics', 'NVIDIA', 1),         -- LOW STOCK (<10)
 ('AA Batteries (Pack)', 'General', 'Duracell', 200);
+
+-- --------------------------------------------------------
+-- 5. Table: audit_logs (Shared Work - Coordinate changes)
+-- --------------------------------------------------------
+DROP TABLE IF EXISTS `audit_logs`;
+CREATE TABLE `audit_logs` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT,
+    `action` VARCHAR(255),
+    `timestamp` DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+COMMIT;
 
 -- 3. Add a sample Audit Log entry so the log viewer isn't empty
 INSERT INTO `audit_logs` (`user_id`, `action`, `timestamp`) VALUES 
