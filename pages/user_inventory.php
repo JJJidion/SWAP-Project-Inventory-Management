@@ -5,7 +5,6 @@ require_once '../config/config.php';
 require_once '../utils/inventory_logic.php';
 
 // --- SECURITY: ACCESS CONTROL ---
-// Allow 'User', 'Admin', and 'Inventory Manager' (so higher roles can preview it too)
 $allowedRoles = ['User', 'Admin', 'Inventory Manager'];
 if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowedRoles)) {
     require_once '../includes/header.php';
@@ -18,20 +17,16 @@ if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowedRoles)) {
 $message = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        // We ONLY allow the 'update' action here
         if (isset($_POST['action']) && $_POST['action'] === 'update') {
             $data = [
-                'id' => $_POST['part_id'], // ID is required for update
+                'id' => $_POST['part_id'],
                 'part_name' => trim($_POST['part_name']),
                 'category' => $_POST['category'],
                 'supplier' => trim($_POST['supplier']),
                 'quantity' => $_POST['quantity']
             ];
-            
-            // Pass the user's ID for the Audit Log
             $userId = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0;
             manageInventory($conn, 'update', $data, $userId);
-            
             $message = "Item updated successfully!";
         } else {
             $message = "Error: Unauthorized action.";
@@ -45,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $searchTerm = $_GET['search'] ?? '';
 $inventoryItems = getInventory($conn, $searchTerm);
 
-// Calculate Stats for the Dashboard
+// Stats
 $totalItems = count($inventoryItems);
 $lowStockCount = 0;
 foreach ($inventoryItems as $item) {
@@ -63,7 +58,6 @@ require_once '../includes/header.php';
     .btn-green { background-color: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
     .btn-grey { background-color: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
     
-    /* Edit Form Container (Hidden by default) */
     #editFormContainer {
         display: none; 
         background: #eef5fa; 
@@ -134,13 +128,13 @@ require_once '../includes/header.php';
     </form>
 
     <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse;">
-        <tr style="background: #333; color: white;">
-            <th>No.</th>
-            <th>Category</th>
-            <th>Part Name</th>
-            <th>Supplier</th>
-            <th>Stock</th>
-            <th>Actions</th>
+        <tr style="background: #e9ecef; color: black; font-weight: bold;">
+            <th style="padding: 10px; border: 1px solid #dee2e6;">No.</th>
+            <th style="padding: 10px; border: 1px solid #dee2e6;">Category</th>
+            <th style="padding: 10px; border: 1px solid #dee2e6;">Part Name</th>
+            <th style="padding: 10px; border: 1px solid #dee2e6;">Supplier</th>
+            <th style="padding: 10px; border: 1px solid #dee2e6;">Stock</th>
+            <th style="padding: 10px; border: 1px solid #dee2e6;">Actions</th>
         </tr>
         <?php if (count($inventoryItems) > 0): ?>
             <?php $rowNum = 1; ?>
@@ -173,17 +167,12 @@ require_once '../includes/header.php';
 
 <script>
 function openEditForm(id, name, qty, cat, supp) {
-    // Show the form
     document.getElementById('editFormContainer').style.display = 'block';
-    
-    // Fill the data
     document.getElementById('inputID').value = id;
     document.getElementById('inputName').value = name;
     document.getElementById('inputQty').value = qty;
     document.getElementById('inputCategory').value = cat;
     document.getElementById('inputSupplier').value = supp;
-    
-    // Scroll to form
     document.getElementById('editFormContainer').scrollIntoView({ behavior: 'smooth' });
 }
 
