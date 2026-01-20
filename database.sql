@@ -64,6 +64,28 @@ CREATE TABLE `inventory` (
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 1. Clear previous data (Cinema items)
+TRUNCATE TABLE `inventory`;
+
+-- 2. Insert Advanced Manufacturing Items
+-- Categories: Raw Materials, Tooling, Components, Consumables
+
+INSERT INTO `inventory` (`part_name`, `category`, `supplier`, `stock_level`) VALUES
+('Aluminum 6061 Rod (20mm)', 'Raw Materials', 'Alcoa', 120),
+('Carbide End Mill (1/4 inch)', 'Tooling', 'Sandvik Coromant', 4),   -- LOW STOCK (Critical)
+('PLA Filament 1.75mm (Black)', 'Consumables', 'Prusa Polymers', 45),
+('NEMA 17 Stepper Motor', 'Components', 'Moons Industries', 30),
+('Industrial Coolant (5 Gallon)', 'Consumables', 'Blaser Swisslube', 2), -- LOW STOCK
+('Stainless Steel Sheet (3mm)', 'Raw Materials', 'ThyssenKrupp', 0),    -- OUT OF STOCK
+('Digital Caliper (150mm)', 'Tooling', 'Mitutoyo', 15),
+('Robotic Arm Servo (MG996R)', 'Components', 'Tower Pro', 8),           -- LOW STOCK
+('Laser Cutter Focus Lens', 'Tooling', 'II-VI Infrared', 10),
+('Ball Bearing (608ZZ)', 'Components', 'SKF Bearings', 200);
+
+-- 3. Log this update
+INSERT INTO `audit_logs` (`user_id`, `action`, `timestamp`) VALUES 
+(1, 'Database reset: Loaded Manufacturing Inventory', NOW());
+
 -- --------------------------------------------------------
 -- 5. Table: audit_logs (Shared Work - Coordinate changes)
 -- --------------------------------------------------------
@@ -76,28 +98,6 @@ CREATE TABLE `audit_logs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 COMMIT;
-
--- 1. Optional: Clear existing items to start fresh
-TRUNCATE TABLE `inventory`;
-
--- 2. Insert 10 Realistic Items
--- We include varied stock levels to test your Red/Yellow/Green badges.
-
-INSERT INTO `inventory` (`part_name`, `category`, `supplier`, `stock_level`) VALUES
-('Wireless Mouse M350', 'Electronics', 'Logitech', 45),
-('HDMI Cable (2m)', 'Hardware', 'Ugreen', 150),
-('Mechanical Keyboard', 'Electronics', 'Keychron', 8),   -- LOW STOCK (<10)
-('Samsung 24" Monitor', 'Electronics', 'Samsung', 12),
-('USB-C Hub', 'Hardware', 'Anker', 0),                  -- OUT OF STOCK (0)
-('Thermal Paste 4g', 'Hardware', 'Arctic', 55),
-('Office Chair (Mesh)', 'General', 'Ikea', 3),          -- LOW STOCK (<10)
-('Desk Lamp', 'General', 'Xiaomi', 20),
-('GTX 1660 Super', 'Electronics', 'NVIDIA', 1),         -- LOW STOCK (<10)
-('AA Batteries (Pack)', 'General', 'Duracell', 200);
-
--- 3. Add a sample Audit Log entry so the log viewer isn't empty
-INSERT INTO `audit_logs` (`user_id`, `action`, `timestamp`) VALUES 
-(1, 'Generated sample database data', NOW());
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

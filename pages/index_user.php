@@ -34,6 +34,9 @@ $pageTitle = 'User Dashboard';
     <div class="container">
         <h1>User Dashboard</h1>
     </div>
+    <button onclick="window.location.href='user_inventory.php';" class="btn">
+    📦 View Inventory
+</button>
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>
 </html>

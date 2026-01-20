@@ -38,7 +38,6 @@ $searchTerm = $_GET['search'] ?? '';
 $inventoryItems = getInventory($conn, $searchTerm);
 
 // --- STATS CALCULATION ---
-// Count items directly from the list so it matches the table
 $totalItems = count($inventoryItems);
 $lowStockCount = 0;
 foreach ($inventoryItems as $item) {
@@ -134,23 +133,19 @@ require_once '../includes/header.php';
     </form>
 
     <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
-        <tr style="background: #333; color: #333;">
-            <th>No.</th>
-            <th>Category</th>
-            <th>Part Name</th>
-            <th>Supplier</th>
-            <th>Stock</th>
-            <th>Actions</th>
+        <tr style="background: #e9ecef; color: black; font-weight: bold;">
+            <th style="padding: 10px; border: 1px solid #dee2e6;">No.</th>
+            <th style="padding: 10px; border: 1px solid #dee2e6;">Category</th>
+            <th style="padding: 10px; border: 1px solid #dee2e6;">Part Name</th>
+            <th style="padding: 10px; border: 1px solid #dee2e6;">Supplier</th>
+            <th style="padding: 10px; border: 1px solid #dee2e6;">Stock</th>
+            <th style="padding: 10px; border: 1px solid #dee2e6;">Actions</th>
         </tr>
         <?php if (count($inventoryItems) > 0): ?>
-            <?php 
-                // Initialize Counter
-                $rowNumber = 1; 
-            ?>
+            <?php $rowNumber = 1; ?>
             <?php foreach ($inventoryItems as $item): ?>
                 <tr style="border-bottom: 1px solid #eee;">
                     <td><?php echo $rowNumber++; ?></td>
-                    
                     <td><?php echo htmlspecialchars($item['category']); ?></td>
                     <td><b><?php echo htmlspecialchars($item['part_name']); ?></b></td>
                     <td><?php echo htmlspecialchars($item['supplier']); ?></td>
@@ -160,7 +155,6 @@ require_once '../includes/header.php';
                     </td>
                     <td>
                         <button onclick="alert('To edit, please delete and re-add.');" style="cursor: pointer; padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px;">Edit</button>
-                        
                         <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this item?');">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="part_id" value="<?php echo $item['id']; ?>">
