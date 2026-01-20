@@ -75,6 +75,20 @@ CREATE TABLE `audit_logs` (
     `timestamp` DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- --------------------------------------------------------
+-- 6. Table: parts_log (Ashton Neo)
+-- --------------------------------------------------------
+DROP TABLE IF EXISTS `parts_log`;
+CREATE TABLE `parts_log` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `username` VARCHAR(255), -- User Input
+    `part_used` VARCHAR(255), -- FuzzySearch for this? Dropdown Selector as well since there are a lot of parts
+    `amount_used` INT,
+    `date_used` DATE, -- User Input
+    `comments` VARCHAR(255), -- Reason for use of parts
+    `claim_submission_time` DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 COMMIT;
 
 -- 1. Optional: Clear existing items to start fresh
@@ -102,3 +116,11 @@ INSERT INTO `audit_logs` (`user_id`, `action`, `timestamp`) VALUES
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+-- Insert 5 Realistic Logs for Parts Log (Simulate Previous Usage) [Do Insert Parts when that section has been edited appropriately]
+INSERT INTO `parts_log` (`username`, `part_used`, `amount_used`, `date_used`, `comments`) VALUES
+('User', 'Insert Part Here', '2', '2025-12-07', 'Project A5: Device Manufacturing'),
+('Admin', 'Insert Part Here', '7', '2025-12-15', 'AMC Maintenance'),
+('Admin', 'Insert Part Here', '1', '2025-12-21', 'Robot Repairs'),
+('User', 'Insert Part Here', '12', '2026-01-06', 'Project A5: Device Manufacturing'),
+('User', 'Insert Part Here', '5', '2025-01-11', 'Project B2: Automated Assembly'); -- Edit to ensure date cannot be in the future?
