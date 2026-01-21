@@ -4,48 +4,65 @@ session_start();
 require_once '../config/config.php';
 require_once '../utils/inventory_logic.php';
 
-// --- ACCESS CONTROL ---
+// Security Check
 if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'Inventory Manager' && $_SESSION['role'] !== 'Admin')) {
-    require_once '../includes/header.php';
-    echo "<div class='container'><h3>⛔ Access Denied.</h3></div>";
-    require_once '../includes/footer.php';
+    header("Location: ../index.php");
     exit();
 }
 
-// Fetch the last 50 logs (instead of just 10)
-$logs = getRecentLogs($conn, 50);
+// Fetch Logs
+$logs = getRecentLogs($conn, 100); // Get last 100 actions
 
-$pageTitle = 'Audit Logs';
+$pageTitle = 'Audit Trail';
 require_once '../includes/header.php'; 
 ?>
 
 <link rel="stylesheet" href="../css/style.css">
 
-<div class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1>🕵️ System Audit Logs</h1>
-        <a href="manage_inventory.php" class="btn" style="background-color: #6c757d; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px;">&larr; Back to Inventory</a>
-    </div>
+<style>
+    .log-container { max-width: 1000px; margin: 30px auto; padding: 20px; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    .back-btn { text-decoration: none; color: #555; font-weight: bold; display: inline-block; margin-bottom: 20px; }
+    .back-btn:hover { color: #000; }
+    
+    .log-table { width: 100%; border-collapse: collapse; }
+    .log-table th { background: #333; color: white; padding: 12px; text-align: left; }
+    .log-table td { padding: 12px; border-bottom: 1px solid #eee; }
+    .log-table tr:hover { background: #f9f9f9; }
+</style>
 
-    <p>Viewing the last <strong>50</strong> system actions.</p>
+<div class="log-container">
+    <a href="manage_inventory.php" class="back-btn">&larr; Back to Inventory</a>
+    
+    <h2 style="margin-top: 0;">🕵️ System Audit Trail</h2>
+    <p>Tracking the last 100 actions performed by users.</p>
 
-    <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-        <tr style="background: #333; color: white;">
-            <th>User</th>
-            <th>Action</th>
-            <th>Time</th>
-        </tr>
-        <?php if (count($logs) > 0): ?>
-            <?php foreach ($logs as $log): ?>
-                <tr style="border-bottom: 1px solid #ddd;">
-                    <td style="font-weight: bold;"><?php echo htmlspecialchars($log['username']); ?></td>
-                    <td><?php echo htmlspecialchars($log['action']); ?></td>
-                    <td><?php echo $log['timestamp']; ?></td>
-                </tr>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <tr><td colspan="3" style="text-align: center;">No logs found.</td></tr>
-        <?php endif; ?>
+    <table class="log-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Action Details</th>
+                <th>Time (Date)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (count($logs) > 0): ?>
+                <?php foreach ($logs as $log): ?>
+                    <tr>
+                        <td style="font-weight: bold; color: #007bff;">
+                            <?php echo htmlspecialchars($log['username']); ?>
+                        </td>
+                        <td>
+                            <?php echo htmlspecialchars($log['action']); ?>
+                        </td>
+                        <td style="color: #666; font-size: 0.9em;">
+                            <?php echo $log['timestamp']; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <tr><td colspan="3" style="text-align:center;">No logs found yet.</td></tr>
+            <?php endif; ?>
+        </tbody>
     </table>
 </div>
 
