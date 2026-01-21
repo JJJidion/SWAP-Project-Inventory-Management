@@ -53,24 +53,21 @@ require_once '../includes/header.php';
 <link rel="stylesheet" href="../css/style.css">
 
 <style>
-    .btn-green {
-        background-color: #28a745;
-        color: white;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: bold;
-        text-decoration: none;
-        font-size: 14px;
-    }
-    .btn-green:hover {
-        background-color: #218838;
-    }
+    .btn-green { background-color: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; text-decoration: none; font-weight: bold; }
+    .btn-green:hover { background-color: #218838; }
+    
+    .btn-blue { background-color: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
+    .btn-red { background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
+    
+    .btn-warning { background-color: #ffc107; color: black; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-secondary { background-color: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-left: 5px; }
+
+    /* Highlight the form when editing */
+    .edit-mode { border: 2px solid #ffc107 !important; background-color: #fffbf0 !important; }
 </style>
 
 <div class="container">
-    <h1>Inventory Management</h1>
+    <h1>🏭 Advanced Manufacturing Centre</h1>
     
     <div style="display: flex; gap: 20px; margin-bottom: 20px;">
         <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px; border-left: 5px solid #007bff;">
@@ -94,33 +91,37 @@ require_once '../includes/header.php';
     <?php endif; ?>
 
     <hr>
-    <h3>Add New Item</h3>
-    <form method="POST" action="" style="background: #f9f9f9; padding: 20px; border: 1px solid #ddd; margin-bottom: 20px; border-radius: 5px;">
-        <input type="hidden" name="action" value="add">
+    <h3 id="formTitle">Add New Item</h3>
+    <form id="inventoryForm" method="POST" action="" style="background: #f9f9f9; padding: 20px; border: 1px solid #ddd; margin-bottom: 20px; border-radius: 5px;">
+        <input type="hidden" name="action" value="add" id="formAction">
+        <input type="hidden" name="part_id" id="inputID">
         
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <div style="flex: 2;">
                 <label>Part Name:</label><br>
-                <input type="text" name="part_name" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <input type="text" name="part_name" id="inputName" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="flex: 1;">
                 <label>Category:</label><br>
-                <select name="category" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <select name="category" id="inputCategory" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <option>Raw Materials</option>
+                    <option>Tooling</option>
+                    <option>Components</option>
+                    <option>Consumables</option>
                     <option>General</option>
-                    <option>Electronics</option>
-                    <option>Hardware</option>
                 </select>
             </div>
             <div style="flex: 1;">
                 <label>Supplier:</label><br>
-                <input type="text" name="supplier" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <input type="text" name="supplier" id="inputSupplier" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="flex: 1;">
                 <label>Stock:</label><br>
-                <input type="number" name="quantity" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <input type="number" name="quantity" id="inputQty" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="display: flex; align-items: flex-end;">
-                <button type="submit" class="btn-green">Add Item</button>
+                <button type="submit" id="submitBtn" class="btn-green">Add Item</button>
+                <button type="button" id="cancelBtn" class="btn-secondary" onclick="resetForm()" style="display: none;">Cancel</button>
             </div>
         </div>
     </form>
@@ -154,11 +155,18 @@ require_once '../includes/header.php';
                         <?php if($item['stock_level'] < 10) echo " <span style='color:red; font-weight:bold;'>(Low)</span>"; ?>
                     </td>
                     <td>
-                        <button onclick="alert('To edit, please delete and re-add.');" style="cursor: pointer; padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px;">Edit</button>
+                        <button class="btn-blue" onclick="editItem(
+                            '<?php echo $item['id']; ?>', 
+                            '<?php echo addslashes($item['part_name']); ?>', 
+                            '<?php echo $item['stock_level']; ?>',
+                            '<?php echo addslashes($item['category']); ?>',
+                            '<?php echo addslashes($item['supplier']); ?>'
+                        )">Edit</button>
+                        
                         <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this item?');">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="part_id" value="<?php echo $item['id']; ?>">
-                            <button style="cursor: pointer; padding: 5px 10px; background: #dc3545; color: white; border: none; border-radius: 3px;">Delete</button>
+                            <button class="btn-red">Delete</button>
                         </form>
                     </td>
                 </tr>
@@ -168,5 +176,45 @@ require_once '../includes/header.php';
         <?php endif; ?>
     </table>
 </div>
+
+<script>
+function editItem(id, name, qty, cat, supp) {
+    // 1. Scroll to the top
+    document.getElementById('inventoryForm').scrollIntoView({ behavior: 'smooth' });
+
+    // 2. Fill the form with data
+    document.getElementById('formAction').value = 'update';
+    document.getElementById('inputID').value = id;
+    document.getElementById('inputName').value = name;
+    document.getElementById('inputQty').value = qty;
+    document.getElementById('inputCategory').value = cat;
+    document.getElementById('inputSupplier').value = supp;
+
+    // 3. Change UI to Edit Mode
+    document.getElementById('formTitle').innerText = '✏️ Edit Item';
+    document.getElementById('submitBtn').innerText = 'Update Item';
+    document.getElementById('submitBtn').className = 'btn-warning'; // Turn button yellow
+    document.getElementById('cancelBtn').style.display = 'inline-block';
+    
+    // 4. Highlight form
+    document.getElementById('inventoryForm').classList.add('edit-mode');
+}
+
+function resetForm() {
+    // Reset everything back to "Add Mode"
+    document.getElementById('formAction').value = 'add';
+    document.getElementById('inputID').value = '';
+    document.getElementById('inputName').value = '';
+    document.getElementById('inputQty').value = '';
+    document.getElementById('inputSupplier').value = '';
+    
+    document.getElementById('formTitle').innerText = 'Add New Item';
+    document.getElementById('submitBtn').innerText = 'Add Item';
+    document.getElementById('submitBtn').className = 'btn-green';
+    document.getElementById('cancelBtn').style.display = 'none';
+    
+    document.getElementById('inventoryForm').classList.remove('edit-mode');
+}
+</script>
 
 <?php require_once '../includes/footer.php'; ?>
