@@ -40,6 +40,10 @@ $pageTitle = 'Admin Dashboard';
             📦 Manage Inventory
         </button>
 
+        <button type="button" class="btn btn-success ms-2" onclick="window.location.href='admin_search.php';">
+        🔎 Search Inventory
+        </button>
+
     </div>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>

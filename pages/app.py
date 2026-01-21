@@ -37,7 +37,27 @@ def ask_ai():
     try:
         data = request.json
         user_query = data.get('query')
-        user_role = data.get('role', 'guest')
+        user_role = data.get('role', 'employee')
+
+        # --- SECURITY LAYER 1: INTENT GUARDRAILS ---
+        # If an Employee explicitly asks for forbidden data, stop them immediately.
+        if user_role == 'employee':
+            forbidden_words = [
+                # Direct Status
+                'obsolete', 'deleted', 'inactive', 'hidden', 'removed', 'archived',
+                # Financials (Future Proofing)
+                'cost', 'margin', 'profit', 'salary',
+                # Jailbreak Attempts
+                'ignore', 'override', 'bypass', 'system prompt',
+                # SQL Injection / Admin Attempts
+                'drop table', 'union select', 'admin', 'root']
+            # Check if any forbidden word is in their query
+            
+            if any(word in user_query for word in forbidden_words):
+                return jsonify({
+                    "answer": "⛔ ACCESS DENIED: You are not permitted to view this information.",
+                    "sql_used": "Blocked by Guardrail"
+                })
 
         # 1. AI Prompt
         prompt = f"""
@@ -62,7 +82,7 @@ def ask_ai():
         secure_sql = ""
         security_filter = ""
 
-        if user_role == 'guest':
+        if user_role == 'employee':
             # Guests see ONLY Active & Not Deleted
             security_filter = "status = 'active' AND is_deleted = 0"
         else:
@@ -82,8 +102,9 @@ def ask_ai():
         cursor.close()
         conn.close()
 
-        return jsonify({"answer": results, "sql_used": secure_sql})
 
+        return jsonify({"answer": results, "sql_used": secure_sql})
+    
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"error": str(e)})
