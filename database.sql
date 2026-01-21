@@ -98,7 +98,7 @@ CREATE TABLE `audit_logs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
--- 6. Table: parts_log (Ashton Neo)
+-- 6. Table: parts_log (Ashton Neo) -- Deprecated
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `parts_log`;
 CREATE TABLE `parts_log` (

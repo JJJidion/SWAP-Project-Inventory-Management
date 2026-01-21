@@ -1,6 +1,6 @@
 <?php
 /**
- * Parts Usage Page: For Users submit parts use claims [Can only see claims they have sent]
+ * Parts Usage Page: For Users submit parts use claims [Can only see claims they have sent] (Will be done by ZF)
  */
 
 session_start();
