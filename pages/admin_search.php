@@ -23,6 +23,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
     $input = json_decode($inputJSON, true);
     $userQuery = $input['query'] ?? '';
 
+    // 🛡️ RATE LIMITING: Allow only 1 search per second
+    $limit_time = 8.0; // Seconds
+    if (isset($_SESSION['last_search_time'])) {
+    $time_since_last = microtime(true) - $_SESSION['last_search_time'];
+    if ($time_since_last < $limit_time) {
+        // Return error immediately without calling Python
+        echo json_encode(["error" => "⏳ Too fast! Please wait a moment."]);
+        exit();
+    }
+    }
+    // Update the last search timestamp
+    $_SESSION['last_search_time'] = microtime(true);
+
     // SECURELY Determine Role from Session (User cannot touch this)
     // We ignore whatever 'role' JS might have tried to send.
     $realRole = 'employee'; 
@@ -162,7 +175,7 @@ $pageTitle = 'AI Search';
                 
                 tableHtml += `</tbody></table>`;
                 // Optional: Show Debug SQL
-                // tableHtml += `<div style="font-size:0.8em; color:#888; margin-top:5px;">🔍 Executed SQL: <i>${data.sql_used}</i></div>`;
+                tableHtml += `<div style="font-size:0.8em; color:#888; margin-top:5px;">🔍 Executed SQL: <i>${data.sql_used}</i></div>`;
                 loader.innerHTML = tableHtml;
             } else {
                 loader.innerHTML = typeof data.answer === 'string' ? data.answer : "No matching records found.";

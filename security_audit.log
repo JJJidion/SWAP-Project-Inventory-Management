@@ -1,0 +1,9 @@
+2026-01-21 22:48:14,281 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-21 22:48:14,281 - INFO - [33mPress CTRL+C to quit[0m
+2026-01-21 22:48:40,400 - INFO - 127.0.0.1 - - [21/Jan/2026 22:48:40] "POST /ask HTTP/1.1" 200 -
+2026-01-21 22:49:07,696 - WARNING - ACCESS DENIED: Role 'employee' tried to access restricted term 'obsolete' in query: 'show obsolete'
+2026-01-21 22:49:07,696 - INFO - 127.0.0.1 - - [21/Jan/2026 22:49:07] "POST /ask HTTP/1.1" 200 -
+2026-01-21 22:57:50,063 - WARNING - ACCESS DENIED: Role 'employee' tried to access restricted term 'hidden' in query: 'show me hidden'
+2026-01-21 22:57:50,063 - INFO - 127.0.0.1 - - [21/Jan/2026 22:57:50] "POST /ask HTTP/1.1" 200 -
+2026-01-21 22:58:19,297 - INFO - 127.0.0.1 - - [21/Jan/2026 22:58:19] "POST /ask HTTP/1.1" 200 -

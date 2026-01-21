@@ -22,6 +22,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
     $input = json_decode($inputJSON, true);
     $userQuery = $input['query'] ?? '';
 
+    // 🛡️ RATE LIMITING: Allow only 1 search per second
+    $limit_time = 8.0; // Seconds
+    if (isset($_SESSION['last_search_time'])) {
+        $time_since_last = microtime(true) - $_SESSION['last_search_time'];
+        if ($time_since_last < $limit_time) {
+            // Return error immediately without calling Python
+            echo json_encode(["error" => "⏳ Too fast! Please wait a moment."]);
+            exit();
+        }
+    }
+    // Update the last search timestamp
+    $_SESSION['last_search_time'] = microtime(true);
+
+
     // SECURELY Determine Role from Session
     // Since this page is ONLY for 'User' role, we hardcode 'employee' for Python.
     // The user cannot fake this because PHP controls it.

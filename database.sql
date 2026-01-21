@@ -124,3 +124,15 @@ INSERT INTO `parts_log` (`username`, `part_used`, `amount_used`, `date_used`, `c
 ('Admin', 'Insert Part Here', '1', '2025-12-21', 'Robot Repairs'),
 ('User', 'Insert Part Here', '12', '2026-01-06', 'Project A5: Device Manufacturing'),
 ('User', 'Insert Part Here', '5', '2025-01-11', 'Project B2: Automated Assembly'); -- Edit to ensure date cannot be in the future?
+
+
+
+-- Create a specific user for the AI Search
+CREATE USER 'ai_search_bot'@'localhost' IDENTIFIED BY 'StrongPassword123!';
+
+-- Grant ONLY SELECT permissions on your inventory database
+-- This user strictly CANNOT Delete, Update, or Drop tables.
+GRANT SELECT ON inv_management_db.* TO 'ai_search_bot'@'localhost';
+
+-- Apply changes
+FLUSH PRIVILEGES;

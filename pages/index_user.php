@@ -31,15 +31,16 @@ $pageTitle = 'User Dashboard';
 
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
-    <div class="container">
-        <h1>User Dashboard</h1>
-    </div>
+    <div class="container mt-5"> <h1>User Dashboard</h1>
+        <h3>Welcome, <?php echo htmlspecialchars($_SESSION["first_name"]); ?>!</h3>
+        <br>
     <button type="button" class="btn btn-success ms-2" onclick="window.location.href='user_inventory.php';">
     📦 View Inventory
     </button>
     <button type="button" class="btn btn-success ms-2" onclick="window.location.href='user_search.php';">
     🔎 Search Inventory
     </button>
+    </div>
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>
 </html>
