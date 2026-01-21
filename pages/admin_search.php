@@ -5,10 +5,11 @@ require_once __DIR__ . '/../config/config.php';
 // ---------------------------------------------------------
 // 1. SECURITY: Page Access Control
 // ---------------------------------------------------------
-// If they are not logged in OR they are not a standard 'User', kick them out.
-if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "User") {
-    header("Location: login.php");
-    exit;
+// If they are not logged in OR they are not an Admin/Manager, kick them out.
+if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'Inventory Manager' && $_SESSION['role'] !== 'Admin')) {
+
+    echo "<div class='container'><h3>⛔ Access Denied.</h3></div>";
+    exit();
 }
 
 // ---------------------------------------------------------
@@ -22,10 +23,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
     $input = json_decode($inputJSON, true);
     $userQuery = $input['query'] ?? '';
 
-    // SECURELY Determine Role from Session
-    // Since this page is ONLY for 'User' role, we hardcode 'employee' for Python.
-    // The user cannot fake this because PHP controls it.
+    // SECURELY Determine Role from Session (User cannot touch this)
+    // We ignore whatever 'role' JS might have tried to send.
     $realRole = 'employee'; 
+    if ($_SESSION['role'] === 'Inventory Manager' || $_SESSION['role'] === 'Admin') {
+        $realRole = 'admin';
+    }
 
     // Prepare data for Python
     $payload = json_encode([
@@ -84,7 +87,7 @@ $pageTitle = 'AI Search';
     <h2>🤖 AI Inventory Search</h2>
 
     <div class="role">
-        <strong>Current Role: Employee</strong>
+        <strong>Current Role: <?php echo htmlspecialchars($_SESSION['role']); ?></strong>
     </div>
 
     <div class="chat-box" id="chatBox">
@@ -116,8 +119,8 @@ $pageTitle = 'AI Search';
 
         try {
             // 3. SECURE REQUEST
-            // Fetch CURRENT PHP PAGE (window.location.href)
-            // No 'role' is sent from JS. PHP handles it.
+            // We fetch the CURRENT PHP PAGE (window.location.href)
+            // We do NOT send the role. PHP handles it.
             const response = await fetch(window.location.href, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

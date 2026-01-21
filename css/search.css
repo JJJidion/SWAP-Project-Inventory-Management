@@ -1,0 +1,76 @@
+/* Modern Clean Look */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; padding-top: 120px}
+        .searchcontain { width: 100%; max-width: 800px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+
+        /* Role */
+        .role { background: #e9ecef; padding: 10px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Chat Area */
+        .chat-box { height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 8px; background: #fafafa; }
+        .message { padding: 10px 15px; margin-bottom: 10px; border-radius: 15px; max-width: 80%; line-height: 1.5; }
+        .user { background: #007bff; color: white; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 2px; }
+        .bot { background: #e4e6eb; color: black; align-self: flex-start; margin-right: auto; border-bottom-left-radius: 2px; }
+
+        /* Input Area */
+        .input-group { display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
+        button { padding: 10px 25px; background: #28a745; color: white; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #218838; }
+
+        /* Data Table Styling */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
+        .data-table th, .data-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .data-table th { background-color: #007bff; color: white; }
+        .badge-active { background: #d4edda; color: #155724; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+        .badge-obsolete { background: #f8d7da; color: #721c24; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+
+        /* Navbar Styling */
+
+        .container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+        .navbar {
+        background-color: #333; /* Dark background matching your image */
+        color: white;
+        padding: 1rem 0;
+        display: flex;
+        justify-content: space-between; /* Pushes title to left, links to right */
+        align-items: center;
+        position: fixed; /* Keeps it stuck to the top */
+        top: 0;
+        left: 0;
+        width: 100%;
+        box-sizing: border-box; /* Ensures padding doesn't break width */
+        z-index: 1000;
+        }
+
+        .navbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h1 {
+            font-size: 1.5rem;
+        }
+
+        .navbar ul {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .navbar a:hover {
+            color: #4CAF50;
+        }
