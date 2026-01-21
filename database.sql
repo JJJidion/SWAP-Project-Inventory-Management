@@ -48,7 +48,8 @@ INSERT INTO `users` (`id`, `email`, `username`, `password_hash`, `role`, `first_
 (1, 'admin@gmail.com', 'Admin', '$2a$10$Di7knnd.pHrgu75uJ863D.vZJERMQ0Ic71c9E/CyU1XUn3ZC.ampC', 'Admin', 'John', 'Doe', '67676767', '2026-01-08 14:25:00', '2026-01-10 12:22:34'),
 (2, 'user@gmail.com', 'User', '$2y$10$FUAlQQdWuKOgh0QQKpBoL.0QqOTdT3i6Yxhez4Y2/tcxzPG/5iRCu', 'User', 'Jimmy', 'Lee', '12345678', '2026-01-11 08:31:30', '2026-01-12 14:31:55'),
 (3, 'manager@gmail.com', 'Manager', '$2y$10$FUAlQQdWuKOgh0QQKpBoL.0QqOTdT3i6Yxhez4Y2/tcxzPG/5iRCu', 'Inventory Manager', 'Test', 'Manager', '99999999', '2026-01-14 09:00:00', '2026-01-14 09:00:00');
-
+(4 'billykwang@gmail.com', 'billyKwang', '$2y$10$pFGUognB8Hn.BymhXw/BrOo5XhKdlXcz2ANK4S6vdP/4RzdLVH3Se', 'User', 'Billy', 'Kwang', '66667777', '2026-01-21 23:05:36', '2026-01-21 23:05:36')
+# ------- Billy's password is "billyKwang26#" -------  *no it does not include the "" you dingus #
 -- --------------------------------------------------------
 -- 4. Table: inventory (Your Work - You can modify this freely)
 -- --------------------------------------------------------
