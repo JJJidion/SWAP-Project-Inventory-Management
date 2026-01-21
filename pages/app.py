@@ -11,7 +11,7 @@ CORS(app)  # <--- ENABLE THIS: Allows your PHP site to talk to Python
 # --- CONFIGURATION ---
 GOOGLE_API_KEY = "AIzaSyDuhizUjzHmIjgZzLaclnDAeqMMMh0ZlEw" # 🔴 PASTE KEY HERE 🔴
 genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemini-2.5-flash-lite')
+model = genai.GenerativeModel('gemma-3-1b-it')
 
 # Configure logging to write to a file
 logging.basicConfig(
@@ -57,7 +57,7 @@ class TrustBoundary:
         return clean_query.strip()
 
     @staticmethod
-    def validate_request(user_query, role):
+    def validate_request(user_query, role, username):
         """
         Checks for adversarial attacks and role violations.
         Returns (True, None) if safe, or (False, ErrorMessage) if blocked.
@@ -68,7 +68,7 @@ class TrustBoundary:
         for pattern in TrustBoundary.ADVERSARIAL_PATTERNS:
             if re.search(pattern, lower_query):
                 # LOGGING ADDED HERE #
-                logging.warning(f"SECURITY ALERT: Adversarial pattern '{pattern}' detected in query: '{user_query}' by Role: '{role}'")
+                logging.warning(f"SECURITY ALERT: Adversarial pattern '{pattern}' detected in query: '{user_query}' by User '{username} ('Role: '{role}')")
                 return False, "⛔ SECURITY ALERT: Adversarial prompt detected."
 
         # 2. Role-Based Keyword Check
@@ -76,7 +76,7 @@ class TrustBoundary:
         for word in forbidden_words:
              if word in lower_query:
                 # LOGGING ADDED HERE #
-                logging.warning(f"ACCESS DENIED: Role '{role}' tried to access restricted term '{word}' in query: '{user_query}'")
+                logging.warning(f"ACCESS DENIED: User '{username}' (Role '{role}') tried to access restricted term '{word}' in query: '{user_query}'")
                 return False, "⛔ ACCESS DENIED: You are not permitted to view this information."
 
         return True, None
@@ -108,6 +108,23 @@ class DataLayer:
             cursor.close()
             conn.close()
             return categories
+        except Exception:
+            return [] # Fallback to empty list if DB fails
+        
+    @staticmethod
+    def get_unique_suppliers():
+        """
+        Fetches a live list of all unique suppliers currently in the DB.
+        """
+        try:
+            conn = mysql.connector.connect(**DataLayer.DB_CONFIG)
+            cursor = conn.cursor()
+            # Get distinct supplier, ignoring empty ones
+            cursor.execute("SELECT DISTINCT supplier FROM inventory WHERE supplier IS NOT NULL AND supplier != ''")
+            supplier = [row[0] for row in cursor.fetchall()]
+            cursor.close()
+            conn.close()
+            return supplier
         except Exception:
             return [] # Fallback to empty list if DB fails
         
@@ -177,10 +194,11 @@ def ask_ai():
         data = request.json
         raw_query = data.get('query', '')
         user_role = data.get('role', 'employee')
+        username = data.get('username', 'Unknown_User') # <--- Get the username (default to Unknown)
 
         # --- STEP 1: TRUST LAYER ---
         clean_query = TrustBoundary.sanitize_input(raw_query)
-        is_safe, error_msg = TrustBoundary.validate_request(clean_query, user_role)
+        is_safe, error_msg = TrustBoundary.validate_request(clean_query, user_role, username)
         if not is_safe:
             return jsonify({"answer": error_msg, "sql_used": "Blocked by Trust Layer"})
 
@@ -189,6 +207,9 @@ def ask_ai():
         live_categories = DataLayer.get_unique_categories()
         # Format them like: 'Cables', 'Connectors', 'Tools'
         categories_str = ", ".join([f"'{c}'" for c in live_categories])
+
+        live_suppliers = DataLayer.get_unique_suppliers()
+        sup_str = ", ".join([f"'{s}'" for s in live_suppliers])
 
         # --- STEP 2: AI PROCESSING ---
         # We construct the prompt dynamically now!
@@ -200,6 +221,7 @@ def ask_ai():
         - id (INT)
         - part_name (VARCHAR)
         - category (VARCHAR). Valid values found in DB: [{categories_str}]
+        - supplier (VARCHAR). Valid values: [{sup_str}]  
         - stock_level (INT)
         - status (ENUM): 'active', 'obsolete'
         - is_deleted (TINYINT)
@@ -208,7 +230,8 @@ def ask_ai():
         
         Rules: 
         1. Return ONLY SQL. No Markdown. No Semicolons.
-        2. If the user searches for a category not in the list, try to match the closest valid value.
+        2. ALWAYS use 'SELECT *' (Select All) so the frontend has all data columns.
+        3. If the user searches for a category/supplier not in the list, match the closest valid value.
         """
         
         response = model.generate_content(prompt)

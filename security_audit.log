@@ -7,3 +7,51 @@
 2026-01-21 22:57:50,063 - WARNING - ACCESS DENIED: Role 'employee' tried to access restricted term 'hidden' in query: 'show me hidden'
 2026-01-21 22:57:50,063 - INFO - 127.0.0.1 - - [21/Jan/2026 22:57:50] "POST /ask HTTP/1.1" 200 -
 2026-01-21 22:58:19,297 - INFO - 127.0.0.1 - - [21/Jan/2026 22:58:19] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:08:59,015 - WARNING - ACCESS DENIED: Role 'employee' tried to access restricted term 'obsolete' in query: 'show me obsolete'
+2026-01-21 23:08:59,015 - INFO - 127.0.0.1 - - [21/Jan/2026 23:08:59] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:25:01,446 - INFO - 127.0.0.1 - - [21/Jan/2026 23:25:01] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:26:09,102 - INFO - 127.0.0.1 - - [21/Jan/2026 23:26:09] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:40:31,165 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-21 23:40:31,165 - INFO - [33mPress CTRL+C to quit[0m
+2026-01-21 23:41:00,799 - WARNING - SECURITY ALERT: Adversarial pattern 'drop.*table' detected in query: 'drop table' by User 'Unknown_User ('Role: 'employee')
+2026-01-21 23:41:00,809 - INFO - 127.0.0.1 - - [21/Jan/2026 23:41:00] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:41:10,831 - WARNING - ACCESS DENIED: User 'Unknown_User' (Role 'employee') tried to access restricted term 'obsolete' in query: 'show obsolete'
+2026-01-21 23:41:10,831 - INFO - 127.0.0.1 - - [21/Jan/2026 23:41:10] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:42:06,236 - WARNING - SECURITY ALERT: Adversarial pattern 'drop.*table' detected in query: 'drop table' by User 'Admin ('Role: 'admin')
+2026-01-21 23:42:06,236 - INFO - 127.0.0.1 - - [21/Jan/2026 23:42:06] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:42:29,149 - INFO - 127.0.0.1 - - [21/Jan/2026 23:42:29] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:46:10,489 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-21 23:46:10,489 - INFO - [33mPress CTRL+C to quit[0m
+2026-01-21 23:46:24,425 - WARNING - SECURITY ALERT: Adversarial pattern 'drop.*table' detected in query: 'drop table' by User 'Admin ('Role: 'admin')
+2026-01-21 23:46:24,426 - INFO - 127.0.0.1 - - [21/Jan/2026 23:46:24] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:46:40,401 - INFO - 127.0.0.1 - - [21/Jan/2026 23:46:40] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:47:04,986 - INFO - 127.0.0.1 - - [21/Jan/2026 23:47:04] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:47:33,917 - INFO - 127.0.0.1 - - [21/Jan/2026 23:47:33] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:48:32,871 - WARNING - SECURITY ALERT: Adversarial pattern 'drop.*table' detected in query: 'drop table' by User 'billyKwang ('Role: 'employee')
+2026-01-21 23:48:32,871 - INFO - 127.0.0.1 - - [21/Jan/2026 23:48:32] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:48:47,503 - INFO - 127.0.0.1 - - [21/Jan/2026 23:48:47] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:49:10,332 - INFO - 127.0.0.1 - - [21/Jan/2026 23:49:10] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:49:23,895 - WARNING - ACCESS DENIED: User 'billyKwang' (Role 'employee') tried to access restricted term 'obsolete' in query: 'show obsolete'
+2026-01-21 23:49:23,895 - INFO - 127.0.0.1 - - [21/Jan/2026 23:49:23] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:49:40,390 - INFO - 127.0.0.1 - - [21/Jan/2026 23:49:40] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:50:47,147 - INFO - 127.0.0.1 - - [21/Jan/2026 23:50:47] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:54:24,143 - INFO - 127.0.0.1 - - [21/Jan/2026 23:54:24] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:54:46,014 - INFO - 127.0.0.1 - - [21/Jan/2026 23:54:46] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:55:32,367 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-21 23:55:32,367 - INFO - [33mPress CTRL+C to quit[0m
+2026-01-21 23:55:39,376 - INFO - 127.0.0.1 - - [21/Jan/2026 23:55:39] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:55:48,958 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-21 23:55:48,958 - INFO - [33mPress CTRL+C to quit[0m
+2026-01-21 23:55:53,681 - INFO - 127.0.0.1 - - [21/Jan/2026 23:55:53] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:56:33,290 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-21 23:56:33,291 - INFO - [33mPress CTRL+C to quit[0m
+2026-01-21 23:56:38,493 - INFO - 127.0.0.1 - - [21/Jan/2026 23:56:38] "POST /ask HTTP/1.1" 200 -
+2026-01-21 23:57:40,271 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-21 23:57:40,272 - INFO - [33mPress CTRL+C to quit[0m
+2026-01-21 23:58:01,688 - INFO - 127.0.0.1 - - [21/Jan/2026 23:58:01] "POST /ask HTTP/1.1" 200 -

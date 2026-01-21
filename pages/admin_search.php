@@ -46,7 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && strpos($_SERVER['CONTENT_TYPE'], 'a
     // Prepare data for Python
     $payload = json_encode([
         "query" => $userQuery,
-        "role" => $realRole // <--- We send the Trusted Role here
+        "role" => $realRole, // <--- We send the Trusted Role here
+        "username" => $_SESSION['username']
     ]);
 
     // Send to Python Backend (cURL)
@@ -156,6 +157,7 @@ $pageTitle = 'AI Search';
                         <tr>
                             <th>Part Name</th>
                             <th>Category</th>
+                            <th>Supplier</th>
                             <th>Stock</th>
                             <th>Status</th>
                         </tr>
@@ -168,6 +170,7 @@ $pageTitle = 'AI Search';
                         <tr>
                             <td>${item.part_name}</td>
                             <td>${item.category}</td>
+                            <td>${item.supplier}</td>
                             <td>${item.stock_level}</td>
                             <td><span class="${statusClass}">${item.status}</span></td>
                         </tr>`;
