@@ -11,7 +11,7 @@ CORS(app)  # <--- ENABLE THIS: Allows your PHP site to talk to Python
 # --- CONFIGURATION ---
 GOOGLE_API_KEY = "AIzaSyDuhizUjzHmIjgZzLaclnDAeqMMMh0ZlEw" # 🔴 PASTE KEY HERE 🔴
 genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel('gemma-3-1b-it')
+model = genai.GenerativeModel('gemini-2.5-flash-lite')
 
 # Configure logging to write to a file
 logging.basicConfig(
