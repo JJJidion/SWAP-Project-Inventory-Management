@@ -41,6 +41,5 @@ $dompdf->stream("amc_report.pdf", ["Attachment" => 0]); // Shows the pdf in the 
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
     
-    <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>
 </html>

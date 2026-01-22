@@ -223,7 +223,6 @@ if ($stmt = $conn->prepare($sql)) {
         </main>
     </div>
 
-    <?php include __DIR__ . '/../includes/footer.php'; ?>
 
     <script>
         document.getElementById('editAccountForm').addEventListener('submit', function(e) {

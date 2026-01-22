@@ -233,7 +233,6 @@ if ($stmt = $conn->prepare($sql)) {
             <p>User data could not be loaded.</p>
         <?php endif; ?>
     </div>
-    <?php include __DIR__ . '/../includes/footer.php'; ?>
 
     <script>
         document.getElementById('updateProfileForm').addEventListener('submit', function(e) {

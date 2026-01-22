@@ -25,6 +25,5 @@ if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "Admin") {
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
     
-    <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>
 </html>

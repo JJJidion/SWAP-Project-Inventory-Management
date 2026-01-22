@@ -89,6 +89,5 @@ if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "Admin") {
         <br>
         <button type="button" class="btn btn-primary" onclick="window.location.href='create_account.php';">Create Account</button>
     </div>
-    <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>
 </html>

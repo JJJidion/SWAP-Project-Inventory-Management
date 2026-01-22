@@ -175,7 +175,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <a href="<?php echo BASE_URL; ?>/pages/account_management.php" class="btn btn-secondary">Cancel</a>
         </form>
     </div>
-    <?php include __DIR__ . '/../includes/footer.php'; ?>
 
     <script>
         document.getElementById('createAccountForm').addEventListener('submit', function(e) {

@@ -79,6 +79,5 @@ if ($stmt->execute()) {
 
         <button type="button" class="btn btn-primary" onclick="window.location.href='update_profile.php?id=<?php echo $id; ?>'">Update Profile</button>
     </div>
-    <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>
 </html>

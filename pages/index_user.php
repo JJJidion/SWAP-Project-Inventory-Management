@@ -41,6 +41,5 @@ $pageTitle = 'User Dashboard';
     🔎 Search Inventory
     </button>
     </div>
-    <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>
 </html>
