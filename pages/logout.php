@@ -1,12 +1,23 @@
 <?php
 session_start();
-
+require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../audit/audit_logger.php';
 // 1. Security Check: This exit is FINE because we want to stop here if they aren't logged in.
 if (!isset($_SESSION["username"])) {
     header("Location: login.php");
     exit;
 }
-
+//AUDIT LOG — MUST HAPPEN BEFORE session_destroy
+audit_log(
+$conn,
+$_SESSION['user_id'] ?? 0,
+$_SESSION['username'] ?? 'UNKNOWN',
+$_SESSION['role'] ?? 'UNKNOWN',
+'LOGOUT',
+'auth',
+null,
+'User logged out'
+);
 // 2. Clear All Cookies (Server-Side) & Build JS String
 // We need to rebuild the $deleteCookie string so the JS below doesn't crash
 $deleteCookie = ""; 
