@@ -83,21 +83,33 @@ INSERT INTO `inventory` (`part_name`, `category`, `supplier`, `stock_level`) VAL
 ('Laser Cutter Focus Lens', 'Tooling', 'II-VI Infrared', 10),
 ('Ball Bearing (608ZZ)', 'Components', 'SKF Bearings', 200);
 
--- 3. Log this update
-INSERT INTO `audit_logs` (`user_id`, `action`, `timestamp`) VALUES 
-(1, 'Database reset: Loaded Manufacturing Inventory', NOW());
-
 -- --------------------------------------------------------
 -- 5. Table: audit_logs (Shared Work - Coordinate changes)
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `audit_logs`;
 CREATE TABLE `audit_logs` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `user_id` INT,
-    `action` VARCHAR(255),
-    `timestamp` DATETIME DEFAULT CURRENT_TIMESTAMP
+id INT AUTO_INCREMENT PRIMARY KEY,
+user_id INT NOT NULL,
+username VARCHAR(50),
+role VARCHAR(20),
+action VARCHAR(50),
+entity VARCHAR(50),
+entity_id INT NULL,
+description TEXT,
+ip_address VARCHAR(45),
+user_agent VARCHAR(255),
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+INSERT INTO audit_logs (user_id, username, role, action, entity, description)
+VALUES (
+1,
+'Admin',
+'Admin',
+'SYSTEM_INIT',
+'database',
+'Database reset: Loaded Manufacturing Inventory'
+);
 -- --------------------------------------------------------
 -- 6. Table: parts_log (Ashton Neo) -- Deprecated
 -- --------------------------------------------------------
