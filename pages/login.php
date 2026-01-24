@@ -7,6 +7,7 @@
 
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . "/../utils/utility.php";
+require_once __DIR__ . '/../audit/audit_logger.php';
 
 $formSubmitted = false;
 $loginSuccess = false;
@@ -36,12 +37,41 @@ $failed_attempts = $countRow[0];
 $stmt->close();
 
 if ($failed_attempts >= MAX_LOGIN_ATTEMPTS) {
+
+    // Try to resolve role from username (if exists)
+    $attemptedUser = $_POST['username'] ?? 'UNKNOWN';
+    $attemptedRole = 'UNKNOWN';
+    $attemptedUserId = 0;
+
+    if ($attemptedUser !== 'UNKNOWN') {
+        $roleStmt = $conn->prepare(
+            "SELECT id, role FROM users WHERE username = ? LIMIT 1"
+        );
+        $roleStmt->bind_param("s", $attemptedUser);
+        $roleStmt->execute();
+        $roleResult = $roleStmt->get_result();
+
+        if ($row = $roleResult->fetch_assoc()) {
+            $attemptedUserId = (int)$row['id'];
+            $attemptedRole = $row['role'];
+        }
+
+        $roleStmt->close();
+    }
+
+    audit_log(
+        $conn,
+        $attemptedUserId,
+        $attemptedUser,
+        $attemptedRole,
+        'ACCOUNT_LOCKED',
+        'auth',
+        null,
+        'Login blocked due to too many failed attempts'
+    );
+
     $errorMessage = "Too many failed attempts. Please try again in " . LOCKOUT_TIME_MINUTES . " minutes.";
-    
-    // ADD THIS LINE:
-    $formSubmitted = true; // Force the HTML to display the error alert
-    
-    // Skip the rest of the login logic and go straight to HTML
+    $formSubmitted = true;
     goto render;
 }
 // --- RATE LIMIT CHECK END ---
@@ -114,11 +144,31 @@ if (!$checkAll) {
                     $_SESSION["user_id"] = $userData["id"];
                     $_SESSION["first_name"] = $userData["first_name"];
                     $loginSuccess = true;
+                
+audit_log(
+$conn,
+$userData['id'],
+$userData['username'],
+$userData['role'],
+'LOGIN_SUCCESS',
+'auth',
+null,
+'User logged in successfully'
+);
 
                 } else {
                     // --- FAILURE: LOG ATTEMPT ---
                     $errorMessage = "Invalid username or password.";
-                    
+audit_log(
+$conn,
+0,
+$_POST['username'],
+'UNKNOWN',
+'LOGIN_FAILED',
+'auth',
+null,
+'Invalid password'
+);
                     $logStmt = $conn->prepare("INSERT INTO login_attempts (ip_address, attempt_time) VALUES (?, NOW())");
                     $logStmt->bind_param("s", $ip_address);
                     $logStmt->execute();
@@ -129,7 +179,16 @@ if (!$checkAll) {
                 // --- FAILURE (User not found): LOG ATTEMPT ---
                 // We log this too, to prevent username enumeration/brute force
                 $errorMessage = "Invalid username or password.";
-                
+audit_log(
+    $conn,
+    0,
+    $_POST['username'],
+    'UNKNOWN',
+    'LOGIN_FAILED',
+    'auth',
+    null,
+    'Username not found'
+);
                 $logStmt = $conn->prepare("INSERT INTO login_attempts (ip_address, attempt_time) VALUES (?, NOW())");
                 $logStmt->bind_param("s", $ip_address);
                 $logStmt->execute();
