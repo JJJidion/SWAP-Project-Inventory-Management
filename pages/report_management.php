@@ -18,9 +18,13 @@ if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "Admin") {
 
 use Dompdf\Dompdf; // Classes for objects so that Dompdf\Dompdf does not need to be used every time a new object is created
 
+$html = '<img src = "includes/TPAMC Logo.png"';
+$html .= '<h1 style="color: blue">Example</h1>';
+$html .= "Hello <em>world</em>";
+
 $dompdf = new Dompdf; 
 
-$dompdf->loadHtml("Hello World"); // Passing HTML into the converter to create a pdf
+$dompdf->loadHtml($html); // Passing HTML into the converter to create a pdf
 
 $dompdf->render(); // To generate the pdf file in memory
 
