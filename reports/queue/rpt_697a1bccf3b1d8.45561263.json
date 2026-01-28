@@ -1,0 +1,16 @@
+{
+    "id": "rpt_697a1bccf3b1d8.45561263",
+    "params": {
+        "report_type": "parts_usage",
+        "start_date": "2025-07-01",
+        "end_date": "2025-07-31",
+        "filters": []
+    },
+    "username": "Admin",
+    "status": "completed",
+    "created_at": 1769610188,
+    "completed_at": 1769610189,
+    "output_file": "parts_usage_report_20260128_152309.pdf",
+    "error": null,
+    "hash": "1c87c22b31ac1de304820f8e1c75ce485816405c519f1220114909302a049cff"
+}

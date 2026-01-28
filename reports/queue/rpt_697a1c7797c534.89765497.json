@@ -1,0 +1,18 @@
+{
+    "id": "rpt_697a1c7797c534.89765497",
+    "params": {
+        "report_type": "parts_usage",
+        "start_date": "2026-01-28",
+        "end_date": "2026-07-31",
+        "filters": {
+            "category": "Consumables"
+        }
+    },
+    "username": "Admin",
+    "status": "completed",
+    "created_at": 1769610359,
+    "completed_at": 1769610359,
+    "output_file": "parts_usage_report_20260128_152559.pdf",
+    "error": null,
+    "hash": "d386183d80611c34e403d6c7b56ff747ef74fd2e65aeb1e7a4876b9a59682916"
+}

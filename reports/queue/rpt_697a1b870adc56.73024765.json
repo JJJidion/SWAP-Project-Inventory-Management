@@ -1,0 +1,18 @@
+{
+    "id": "rpt_697a1b870adc56.73024765",
+    "params": {
+        "report_type": "finance",
+        "start_date": "2025-07-01",
+        "end_date": "2026-07-31",
+        "filters": {
+            "category": "Consumables"
+        }
+    },
+    "username": "Admin",
+    "status": "completed",
+    "created_at": 1769610119,
+    "completed_at": 1769610119,
+    "output_file": "finance_report_20260128_152159.pdf",
+    "error": null,
+    "hash": "8f0b8347a5184e231c62884ae46c84e29dc537e16a721d7caa64bcbf23407404"
+}

@@ -3,32 +3,238 @@
  * ============================================================================
  * AMC REPORT MANAGEMENT PAGE
  * ============================================================================
- * 
- * File: report_management.php
- * Purpose: Generate PDF reports for the Advanced Manufacturing Centre (AMC)
- *          inventory management system.
- * 
- * Features:
- * - Three report types: Parts Usage, Finance, and Inventory
- * - Date range filtering with validation
- * - Optional filters for Category, Supplier, and Project ID
- * - Filter transparency (all applied filters shown on report header)
- * - Low stock highlighting and procurement recommendations
- * - SHA-256 hash generation for report integrity verification
- * 
- * Requirements:
- * - PHP 7.4+
- * - Dompdf library (installed in /lib/dompdf/)
- * - MySQL database with inventory and parts_log tables
- * 
- * Author: AMC Development Team
- * Version: 1.0
- * ============================================================================
  */
 
 session_start();
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../lib/dompdf/autoload.inc.php';
+
+// ============================================================================
+// CONFIGURATION CONSTANTS
+// ============================================================================
+
+define('COOLDOWN_SECONDS', 30);           // Cooldown between report generations
+define('LOW_STOCK_THRESHOLD', 10);        // Stock level considered "low"
+define('RESTOCK_QUANTITY', 10);           // Recommended restock amount (Keeping it as such for simplicity)
+define('REPORTS_QUEUE_DIR', __DIR__ . '/../reports/queue/');  // Queue directory
+define('REPORTS_OUTPUT_DIR', __DIR__ . '/../reports/generated/'); // Output directory
+
+// ============================================================================
+// COOLDOWN TIMER FUNCTIONS (Misuse Case 5.2 Mitigation)
+// ============================================================================
+
+/**
+ * Check if user is currently in cooldown period
+ * 
+ * @return int - Seconds remaining in cooldown (0 if ready)
+ */
+function checkCooldown(): int {
+    if (!isset($_SESSION['last_report_time'])) {
+        return 0;
+    }
+    
+    $elapsed = time() - $_SESSION['last_report_time'];
+    $remaining = COOLDOWN_SECONDS - $elapsed;
+    
+    return max(0, $remaining);
+}
+
+/**
+ * Set cooldown timestamp after successful report generation
+ */
+function setCooldown(): void {
+    $_SESSION['last_report_time'] = time();
+}
+
+/**
+ * Get cooldown status message for display
+ * 
+ * @return array - ['on_cooldown' => bool, 'seconds' => int, 'message' => string]
+ */
+function getCooldownStatus(): array {
+    $remaining = checkCooldown();
+    
+    if ($remaining > 0) {
+        return [
+            'on_cooldown' => true,
+            'seconds' => $remaining,
+            'message' => "Please wait {$remaining} seconds before generating another report."
+        ];
+    }
+    
+    return [
+        'on_cooldown' => false,
+        'seconds' => 0,
+        'message' => ''
+    ];
+}
+
+// ============================================================================
+// BACKGROUND PROCESSING QUEUE
+// ============================================================================
+
+/**
+ * ReportQueue class handles queuing report generation requests
+ * This prevents the server from being overwhelmed by multiple simultaneous requests 
+ */
+class ReportQueue {
+    private $queueDir;
+    private $outputDir;
+    
+    public function __construct() {
+        $this->queueDir = REPORTS_QUEUE_DIR;
+        $this->outputDir = REPORTS_OUTPUT_DIR;
+        
+        // Create directories if they don't exist
+        if (!is_dir($this->queueDir)) {
+            mkdir($this->queueDir, 0755, true);
+        }
+        if (!is_dir($this->outputDir)) {
+            mkdir($this->outputDir, 0755, true);
+        }
+    }
+    
+    /**
+     * Add a report request to the queue
+     */
+    public function addToQueue(array $params, string $username): string {
+        $queueId = uniqid('rpt_', true);
+        
+        $queueItem = [
+            'id' => $queueId,
+            'params' => $params,
+            'username' => $username,
+            'status' => 'pending',
+            'created_at' => time(),
+            'completed_at' => null,
+            'output_file' => null,
+            'error' => null
+        ];
+        
+        $queueFile = $this->queueDir . $queueId . '.json';
+        file_put_contents($queueFile, json_encode($queueItem, JSON_PRETTY_PRINT));
+        
+        return $queueId;
+    }
+    
+    /**
+     * Get queue item status
+     */
+    public function getStatus(string $queueId): ?array {
+        $queueFile = $this->queueDir . $queueId . '.json';
+        
+        if (!file_exists($queueFile)) {
+            return null;
+        }
+        
+        return json_decode(file_get_contents($queueFile), true);
+    }
+    
+    /**
+     * Update queue item status
+     */
+    public function updateStatus(string $queueId, array $updates): void {
+        $queueFile = $this->queueDir . $queueId . '.json';
+        
+        if (file_exists($queueFile)) {
+            $item = json_decode(file_get_contents($queueFile), true);
+            $item = array_merge($item, $updates);
+            file_put_contents($queueFile, json_encode($item, JSON_PRETTY_PRINT));
+        }
+    }
+    
+    /**
+     * Process the next pending item in queue (ONE at a time)
+     */
+    public function processNext(PDO $pdo): ?array {
+        $files = glob($this->queueDir . '*.json');
+        
+        // Sort by creation time (oldest first)
+        usort($files, function($a, $b) {
+            $aData = json_decode(file_get_contents($a), true);
+            $bData = json_decode(file_get_contents($b), true);
+            return $aData['created_at'] - $bData['created_at'];
+        });
+        
+        // Find first pending item
+        foreach ($files as $file) {
+            $item = json_decode(file_get_contents($file), true);
+            
+            if ($item['status'] === 'pending') {
+                $this->updateStatus($item['id'], ['status' => 'processing']);
+                
+                try {
+                    $generator = new AMCReportGenerator($pdo);
+                    $generator->setReportType($item['params']['report_type'])
+                              ->setDateRange($item['params']['start_date'], $item['params']['end_date'])
+                              ->setFilters($item['params']['filters'] ?? [])
+                              ->setGeneratedBy($item['username']);
+                    
+                    $result = $generator->generate();
+                    
+                    $outputFile = $this->outputDir . $result['filename'];
+                    file_put_contents($outputFile, $result['pdf']);
+                    
+                    $this->updateStatus($item['id'], [
+                        'status' => 'completed',
+                        'completed_at' => time(),
+                        'output_file' => $result['filename'],
+                        'hash' => $result['hash']
+                    ]);
+                    
+                    $item['status'] = 'completed';
+                    $item['output_file'] = $result['filename'];
+                    
+                } catch (Exception $e) {
+                    $this->updateStatus($item['id'], [
+                        'status' => 'failed',
+                        'error' => $e->getMessage()
+                    ]);
+                    
+                    $item['status'] = 'failed';
+                    $item['error'] = $e->getMessage();
+                }
+                
+                return $item;
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Get count of pending items in queue
+     */
+    public function getPendingCount(): int {
+        $count = 0;
+        $files = glob($this->queueDir . '*.json');
+        
+        foreach ($files as $file) {
+            $item = json_decode(file_get_contents($file), true);
+            if ($item['status'] === 'pending') {
+                $count++;
+            }
+        }
+        
+        return $count;
+    }
+    
+    /**
+     * Clean up old completed/failed queue items (older than 1 hour)
+     */
+    public function cleanup(): void {
+        $files = glob($this->queueDir . '*.json');
+        $oneHourAgo = time() - 3600;
+        
+        foreach ($files as $file) {
+            $item = json_decode(file_get_contents($file), true);
+            
+            if (in_array($item['status'], ['completed', 'failed']) && $item['created_at'] < $oneHourAgo) {
+                unlink($file);
+            }
+        }
+    }
+}
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -148,7 +354,7 @@ class AMCReportGenerator {
     // CSS STYLES FOR PDF
     // -------------------------------------------------------------------------
     /**
-     * Generate the CSS styles for the PDF document
+     * Generate the CSS styles for the PDF document itself
      * Theme: Grey (#333) and White
      * 
      * @return string - HTML <style> block with all CSS
@@ -889,6 +1095,16 @@ try {
 }
 
 // ============================================================================
+// INITIALIZE QUEUE AND CHECK COOLDOWN
+// ============================================================================
+
+$queue = new ReportQueue();
+$queue->cleanup();  // Clean up old queue items
+
+$cooldownStatus = getCooldownStatus();
+$pendingCount = $queue->getPendingCount();
+
+// ============================================================================
 // FETCH DATA FOR FILTER DROPDOWNS
 // ============================================================================
 // Get unique categories, suppliers, and project IDs for the filter options
@@ -898,60 +1114,99 @@ $suppliers = $pdo->query("SELECT DISTINCT supplier FROM inventory WHERE is_delet
 $projects = $pdo->query("SELECT DISTINCT project_id FROM parts_log WHERE project_id IS NOT NULL AND project_id != '' ORDER BY project_id")->fetchAll();
 
 // ============================================================================
+// HANDLE FILE DOWNLOAD
+// ============================================================================
+
+if (isset($_GET['download']) && isset($_GET['file'])) {
+    $filename = basename($_GET['file']);  // Security: prevent directory traversal
+    $filepath = REPORTS_OUTPUT_DIR . $filename;
+    
+    if (file_exists($filepath)) {
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($filepath));
+        readfile($filepath);
+        exit;
+    } else {
+        die("File not found");
+    }
+}
+
+// ============================================================================
 // FORM SUBMISSION HANDLER
 // ============================================================================
-// Process the form when user clicks "Generate"
 
 $message = '';
 $messageType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
-    try {
-        // Get form values
-        $reportType = $_POST['report_type'] ?? '';
-        $startDate = $_POST['start_date'] ?? '';
-        $endDate = $_POST['end_date'] ?? '';
-        
-        // Validate required fields
-        if (empty($reportType)) {
-            throw new Exception("Please select a report type");
+    
+    // Check cooldown first (Misuse Case 5.2)
+    if ($cooldownStatus['on_cooldown']) {
+        $message = $cooldownStatus['message'];
+        $messageType = 'warning';
+    } else {
+        try {
+            $reportType = $_POST['report_type'] ?? '';
+            $startDate = $_POST['start_date'] ?? '';
+            $endDate = $_POST['end_date'] ?? '';
+            
+            // Validate inputs
+            if (empty($reportType)) {
+                throw new Exception("Please select a report type");
+            }
+            
+            if (empty($startDate) || empty($endDate)) {
+                throw new Exception("Please select both start and end dates");
+            }
+            
+            if (strtotime($startDate) > strtotime($endDate)) {
+                throw new Exception("Start Date must be earlier than End Date");
+            }
+            
+            // Build filters array
+            $filters = [];
+            if (!empty($_POST['category'])) {
+                $filters['category'] = $_POST['category'];
+            }
+            if (!empty($_POST['supplier'])) {
+                $filters['supplier'] = $_POST['supplier'];
+            }
+            if (!empty($_POST['project_id']) && $reportType === 'parts_usage') {
+                $filters['project_id'] = $_POST['project_id'];
+            }
+            
+            // Add to queue
+            $params = [
+                'report_type' => $reportType,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'filters' => $filters
+            ];
+            
+            $queueId = $queue->addToQueue($params, $_SESSION['username']);
+            
+            // Set cooldown timer
+            setCooldown();
+            
+            // Process the queue immediately
+            $result = $queue->processNext($pdo);
+            
+            if ($result && $result['status'] === 'completed') {
+                // Redirect to view the PDF
+                header('Location: ?download=1&file=' . urlencode($result['output_file']));
+                exit;
+            } elseif ($result && $result['status'] === 'failed') {
+                throw new Exception($result['error']);
+            }
+            
+            // Update cooldown status for display
+            $cooldownStatus = getCooldownStatus();
+            
+        } catch (Exception $e) {
+            $message = $e->getMessage();
+            $messageType = 'error';
         }
-        
-        if (empty($startDate) || empty($endDate)) {
-            throw new Exception("Please select both start and end dates");
-        }
-        
-        // Validate date range (start must be before end)
-        if (strtotime($startDate) > strtotime($endDate)) {
-            throw new Exception("Start Date must be earlier than End Date");
-        }
-        
-        // Build filters array from optional fields
-        $filters = [];
-        if (!empty($_POST['category'])) {
-            $filters['category'] = $_POST['category'];
-        }
-        if (!empty($_POST['supplier'])) {
-            $filters['supplier'] = $_POST['supplier'];
-        }
-        if (!empty($_POST['project_id']) && $reportType === 'parts_usage') {
-            $filters['project_id'] = $_POST['project_id'];
-        }
-        
-        // Create and configure report generator
-        $generator = new AMCReportGenerator($pdo);
-        $generator->setReportType($reportType)
-                  ->setDateRange($startDate, $endDate)
-                  ->setFilters($filters)
-                  ->setGeneratedBy($_SESSION['username']);
-        
-        // Stream PDF to browser (false = view in browser, true = force download)
-        $generator->stream(false);
-        exit;  // Stop execution after streaming PDF
-        
-    } catch (Exception $e) {
-        $message = $e->getMessage();
-        $messageType = 'error';
     }
 }
 ?>
@@ -964,9 +1219,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/style.css">
     <title><?php echo $pageTitle; ?></title>
     <style>
-        /* ====================================================================
-           REPORT MANAGEMENT PAGE STYLES
-           ==================================================================== */
+        /* ===================================================================================
+           REPORT MANAGEMENT PAGE STYLES -- This is here since DomPDF cannot read External CSS
+           =================================================================================== */
         
         /* Main container */
         .report-container {
@@ -1189,6 +1444,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
                 <?php echo htmlspecialchars($message); ?>
             </div>
         <?php endif; ?>
+
+                <!-- Cooldown Warning Banner (Misuse Case 5.2) -->
+        <?php if ($cooldownStatus['on_cooldown']): ?>
+            <div class="alert alert-warning" id="cooldownAlert">
+                <strong>⏱️ Cooldown Active:</strong> 
+                Please wait <span id="cooldownTimer"><?php echo $cooldownStatus['seconds']; ?></span> seconds before generating another report.
+            </div>
+        <?php endif; ?>
+
+        <!-- Queue Status -->
+        <?php if ($pendingCount > 0): ?>
+            <div class="alert alert-info">
+                <strong>📋 Queue Status:</strong> 
+                <?php echo $pendingCount; ?> report(s) pending in queue.
+            </div>
+        <?php endif; ?>
         
         <!-- Information box explaining the feature -->
         <div class="info-box">
@@ -1312,7 +1583,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
                 </div>
                 
                 <div class="button-group">
-                    <button type="submit" name="generate" value="1" class="btn-generate">
+                    <button type="submit" name="generate" value="1" class="btn-generate" 
+        id="generateBtn" <?php echo $cooldownStatus['on_cooldown'] ? 'disabled' : ''; ?>>
                         📄 Generate & View PDF
                     </button>
                     <button type="button" onclick="resetForm()" class="btn-reset">
@@ -1326,6 +1598,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
     <?php require_once '../includes/footer.php'; ?>
     
     <script>
+
+        // ====================================================================
+        // COOLDOWN TIMER (Misuse Case 5.2)
+        // ====================================================================
+
+        let cooldownSeconds = <?php echo $cooldownStatus['seconds']; ?>;
+
+        if (cooldownSeconds > 0) {
+            const timerEl = document.getElementById('cooldownTimer');
+            const btnEl = document.getElementById('generateBtn');
+            const alertEl = document.getElementById('cooldownAlert');
+            
+            const countdown = setInterval(() => {
+                cooldownSeconds--;
+                
+                if (timerEl) {
+                    timerEl.textContent = cooldownSeconds;
+                }
+                
+                if (cooldownSeconds <= 0) {
+                    clearInterval(countdown);
+                    
+                    // Enable button
+                    if (btnEl) {
+                        btnEl.disabled = false;
+                    }
+                    
+                    // Hide cooldown alert
+                    if (alertEl) {
+                        alertEl.style.display = 'none';
+                    }
+                }
+            }, 1000);
+        }
         // ====================================================================
         // JAVASCRIPT FOR REPORT MANAGEMENT PAGE
         // ====================================================================

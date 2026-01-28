@@ -1,0 +1,16 @@
+{
+    "id": "rpt_697a17151a4b19.39546016",
+    "params": {
+        "report_type": "inventory",
+        "start_date": "2025-12-31",
+        "end_date": "2026-01-28",
+        "filters": []
+    },
+    "username": "Admin",
+    "status": "completed",
+    "created_at": 1769608981,
+    "completed_at": 1769608981,
+    "output_file": "inventory_report_20260128_150301.pdf",
+    "error": null,
+    "hash": "21490c72c7808d2ba9900a038fc6c35cd59fadf53dfc534587ed66b41f80c04b"
+}
