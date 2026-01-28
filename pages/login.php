@@ -15,7 +15,7 @@ $userData = null;
 $pageTitle = 'Login';
 
 define('MAX_LOGIN_ATTEMPTS', 5);
-define('LOCKOUT_TIME_MINUTES', 1);
+define('LOCKOUT_TIME_MINUTES', 15);
 
 // --- RATE LIMIT CHECK START ---
 // --- RATE LIMIT CHECK START ---
@@ -81,7 +81,7 @@ if (!$checkAll) {
     $errorMessage = "Please enter both username and password.";
 } else {
     // 1. Prepare the query
-    $query = "SELECT id, email, username, password_hash, role, first_name, last_name, phone_number, created_at, updated_at FROM users WHERE username = ?";
+    $query = "SELECT password_hash, username, role, id, first_name FROM users WHERE username = ?";
     
     if ($stmt = $conn->prepare($query)) {
         
