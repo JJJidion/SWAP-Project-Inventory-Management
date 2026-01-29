@@ -80,8 +80,11 @@ require_once '../includes/header.php';
             <p style="font-size: 24px; font-weight: bold; margin: 0; color: #dc3545;"><?php echo $lowStockCount; ?></p>
         </div>
         <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px; border-left: 5px solid #6c757d;">
-            <h3>Audit Logs</h3>
-            <p><a href="view_audit_logs.php" style="text-decoration: none; color: #333; font-weight: bold;">View Full History &rarr;</a></p>
+            <h3>Stock Change Logs</h3>
+            <p><a href="<?php echo BASE_URL; ?>/audit/stock_logs.php"
+   style="text-decoration: none; color: #333; font-weight: bold;">
+    View Stock Change Logs &rarr;
+</a></p>
         </div>
     </div>
 
