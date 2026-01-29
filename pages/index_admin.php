@@ -52,7 +52,7 @@ $pageTitle = 'Inventory Manager Dashboard';
         </button>
 
         <button type="button" class="btn btn-success ms-2" onclick="window.location.href='admin_parts_log.php';">
-        ⚙️ Report Management
+        ⚙️ Parts Logs
         </button>
 
         <hr class="my-4">
