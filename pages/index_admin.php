@@ -44,6 +44,10 @@ $pageTitle = 'Admin Dashboard';
         🔎 Search Inventory
         </button>
 
+        <button type="button" class="btn btn-success ms-2" onclick="window.location.href='report_management.php';">
+        Report Management
+        </button>
+
     </div>
 
 </body>

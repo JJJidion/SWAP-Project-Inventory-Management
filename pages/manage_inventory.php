@@ -22,7 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'part_name' => trim($_POST['part_name'] ?? ''),
             'category' => $_POST['category'] ?? 'General',
             'supplier' => trim($_POST['supplier'] ?? ''),
-            'quantity' => $_POST['quantity'] ?? 0
+            'quantity' => $_POST['quantity'] ?? 0,
+            'price' => $_POST['price'] ?? 0.00 // NEW FIELD
         ];
         
         $userId = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 1;
@@ -41,9 +42,7 @@ $inventoryItems = getInventory($conn, $searchTerm);
 $totalItems = count($inventoryItems);
 $lowStockCount = 0;
 foreach ($inventoryItems as $item) {
-    if ($item['stock_level'] < 10) {
-        $lowStockCount++;
-    }
+    if ($item['stock_level'] < 10) $lowStockCount++;
 }
 
 $pageTitle = 'Inventory Manager';
@@ -62,7 +61,6 @@ require_once '../includes/header.php';
     .btn-warning { background-color: #ffc107; color: black; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     .btn-secondary { background-color: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-left: 5px; }
 
-    /* Highlight the form when editing */
     .edit-mode { border: 2px solid #ffc107 !important; background-color: #fffbf0 !important; }
 </style>
 
@@ -116,6 +114,9 @@ require_once '../includes/header.php';
                 <input type="text" name="supplier" id="inputSupplier" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="flex: 1;">
+                <label>Value ($):</label><br> <input type="number" step="0.01" name="price" id="inputPrice" placeholder="0.00" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+            </div>
+            <div style="flex: 1;">
                 <label>Stock:</label><br>
                 <input type="number" name="quantity" id="inputQty" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
@@ -139,7 +140,7 @@ require_once '../includes/header.php';
             <th style="padding: 10px; border: 1px solid #dee2e6;">Category</th>
             <th style="padding: 10px; border: 1px solid #dee2e6;">Part Name</th>
             <th style="padding: 10px; border: 1px solid #dee2e6;">Supplier</th>
-            <th style="padding: 10px; border: 1px solid #dee2e6;">Stock</th>
+            <th style="padding: 10px; border: 1px solid #dee2e6;">Value ($)</th> <th style="padding: 10px; border: 1px solid #dee2e6;">Stock</th>
             <th style="padding: 10px; border: 1px solid #dee2e6;">Actions</th>
         </tr>
         <?php if (count($inventoryItems) > 0): ?>
@@ -150,7 +151,7 @@ require_once '../includes/header.php';
                     <td><?php echo htmlspecialchars($item['category']); ?></td>
                     <td><b><?php echo htmlspecialchars($item['part_name']); ?></b></td>
                     <td><?php echo htmlspecialchars($item['supplier']); ?></td>
-                    <td>
+                    <td>$<?php echo number_format($item['price'], 2); ?></td> <td>
                         <?php echo $item['stock_level']; ?>
                         <?php if($item['stock_level'] < 10) echo " <span style='color:red; font-weight:bold;'>(Low)</span>"; ?>
                     </td>
@@ -160,7 +161,8 @@ require_once '../includes/header.php';
                             '<?php echo addslashes($item['part_name']); ?>', 
                             '<?php echo $item['stock_level']; ?>',
                             '<?php echo addslashes($item['category']); ?>',
-                            '<?php echo addslashes($item['supplier']); ?>'
+                            '<?php echo addslashes($item['supplier']); ?>',
+                            '<?php echo $item['price']; ?>'
                         )">Edit</button>
                         
                         <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this item?');">
@@ -172,41 +174,38 @@ require_once '../includes/header.php';
                 </tr>
             <?php endforeach; ?>
         <?php else: ?>
-            <tr><td colspan="6" style="text-align: center;">No items found.</td></tr>
+            <tr><td colspan="7" style="text-align: center;">No items found.</td></tr>
         <?php endif; ?>
     </table>
 </div>
 
 <script>
-function editItem(id, name, qty, cat, supp) {
-    // 1. Scroll to the top
+function editItem(id, name, qty, cat, supp, price) {
     document.getElementById('inventoryForm').scrollIntoView({ behavior: 'smooth' });
 
-    // 2. Fill the form with data
     document.getElementById('formAction').value = 'update';
     document.getElementById('inputID').value = id;
     document.getElementById('inputName').value = name;
     document.getElementById('inputQty').value = qty;
     document.getElementById('inputCategory').value = cat;
     document.getElementById('inputSupplier').value = supp;
+    document.getElementById('inputPrice').value = price; // Fill Price Field
 
-    // 3. Change UI to Edit Mode
     document.getElementById('formTitle').innerText = '✏️ Edit Item';
     document.getElementById('submitBtn').innerText = 'Update Item';
-    document.getElementById('submitBtn').className = 'btn-warning'; // Turn button yellow
+    document.getElementById('submitBtn').className = 'btn-warning';
     document.getElementById('cancelBtn').style.display = 'inline-block';
     
-    // 4. Highlight form
     document.getElementById('inventoryForm').classList.add('edit-mode');
 }
 
 function resetForm() {
-    // Reset everything back to "Add Mode"
     document.getElementById('formAction').value = 'add';
     document.getElementById('inputID').value = '';
     document.getElementById('inputName').value = '';
     document.getElementById('inputQty').value = '';
     document.getElementById('inputSupplier').value = '';
+    document.getElementById('inputPrice').value = ''; // Clear Price Field
     
     document.getElementById('formTitle').innerText = 'Add New Item';
     document.getElementById('submitBtn').innerText = 'Add Item';

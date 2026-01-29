@@ -60,7 +60,22 @@ CREATE TABLE `audit_logs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
--- 5. Table: inventory (Your Work)
+-- 5. Table: parts_log (Ashton Neo) -- Deprecated //Moved here to ensure the audit tables exist before inventory
+-- --------------------------------------------------------
+DROP TABLE IF EXISTS `parts_log`;
+CREATE TABLE `parts_log` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `username` VARCHAR(255), 
+    `part_used` VARCHAR(255), 
+    `amount_used` INT,
+    `date_used` DATE, 
+    `project_id` VARCHAR(255), -- Added this for Students to show that usage of parts was for project
+    `comments` VARCHAR(255), 
+    `claim_submission_time` DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+-- 6. Table: inventory (Your Work)
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `inventory`;
 CREATE TABLE `inventory` (
@@ -69,6 +84,7 @@ CREATE TABLE `inventory` (
     `category` VARCHAR(50) DEFAULT 'General',
     `supplier` VARCHAR(100) DEFAULT 'Unknown',
     `stock_level` INT NOT NULL DEFAULT 0,
+    `cost_per_part` FLOAT(5,2), -- Not sure whether to use Float or Double
     `status` ENUM('active', 'obsolete') DEFAULT 'active',
     `is_deleted` TINYINT(1) DEFAULT 0, 
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -78,35 +94,24 @@ CREATE TABLE `inventory` (
 TRUNCATE TABLE `inventory`;
 
 -- 2. Insert Advanced Manufacturing Items
-INSERT INTO `inventory` (`part_name`, `category`, `supplier`, `stock_level`) VALUES
-('Aluminum 6061 Rod (20mm)', 'Raw Materials', 'Alcoa', 120),
-('Carbide End Mill (1/4 inch)', 'Tooling', 'Sandvik Coromant', 4),   
-('PLA Filament 1.75mm (Black)', 'Consumables', 'Prusa Polymers', 45),
-('NEMA 17 Stepper Motor', 'Components', 'Moons Industries', 30),
-('Industrial Coolant (5 Gallon)', 'Consumables', 'Blaser Swisslube', 2), 
-('Stainless Steel Sheet (3mm)', 'Raw Materials', 'ThyssenKrupp', 0),    
-('Digital Caliper (150mm)', 'Tooling', 'Mitutoyo', 15),
-('Robotic Arm Servo (MG996R)', 'Components', 'Tower Pro', 8),            
-('Laser Cutter Focus Lens', 'Tooling', 'II-VI Infrared', 10),
-('Ball Bearing (608ZZ)', 'Components', 'SKF Bearings', 200);
+INSERT INTO `inventory` (`part_name`, `category`, `supplier`, `stock_level`, `cost_per_part`) VALUES
+('Aluminum 6061 Rod (20mm)', 'Raw Materials', 'Gidcoa', 120, 12.50),
+('Carbide End Mill (1/4 inch)', 'Tooling', 'Sandvik Coromant', 4, 377.89),   
+('PLA Filament 1.75mm (Black)', 'Consumables', 'Moonlight Polymers', 45, 23.30),
+('NEMA 17 Stepper Motor', 'Components', 'Columbina Industries', 30, 14.00),
+('Industrial Coolant (5 Gallon)', 'Consumables', 'Blaser Swisslube', 2, 476.97), 
+('Stainless Steel Sheet (3mm)', 'Raw Materials', 'ThyssenKrupp', 0, 13.88),    
+('Digital Caliper (150mm)', 'Tooling', 'Mitutoyo', 15, 37.90),
+('Robotic Arm Servo (MG996R)', 'Components', 'Lye Pro', 8, 6944.88),            
+('Laser Cutter Focus Lens', 'Tooling', 'II-VI Infrared', 10, 2450.00),
+('Ball Bearing (608ZZ)', 'Components', 'LZF Bearings', 200, 1.89);
 
 -- 3. Log this update (NOW THIS WORKS)
 INSERT INTO `audit_logs` (`user_id`, `action`, `timestamp`) VALUES 
 (1, 'Database reset: Loaded Manufacturing Inventory', NOW());
 
--- --------------------------------------------------------
--- 6. Table: parts_log (Ashton Neo) -- Deprecated
--- --------------------------------------------------------
-DROP TABLE IF EXISTS `parts_log`;
-CREATE TABLE `parts_log` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `username` VARCHAR(255), 
-    `part_used` VARCHAR(255), 
-    `amount_used` INT,
-    `date_used` DATE, 
-    `comments` VARCHAR(255), 
-    `claim_submission_time` DATETIME DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+ALTER TABLE `inventory` 
+ADD COLUMN `price` DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER `stock_level`;
 
 COMMIT;
 
