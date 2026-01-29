@@ -151,33 +151,15 @@ TRUNCATE TABLE `parts_log`;
 INSERT INTO `parts_log` (`username`, `part_used`, `amount_used`, `date_used`, `project_id`, `comments`) VALUES
 
 -- Project A5: Device Manufacturing
-('john_doe', 'Aluminum 6061 Rod (20mm)', 5, '2025-07-26', 'A5', 'Project A5: Device Manufacturing - Frame Construction'),
-('john_doe', 'NEMA 17 Stepper Motor', 2, '2025-07-26', 'A5', 'Project A5: Device Manufacturing - Motor Installation'),
-('john_doe', 'Ball Bearing (608ZZ)', 8, '2025-07-27', 'A5', 'Project A5: Device Manufacturing - Assembly'),
-('sarah_smith', 'PLA Filament 1.75mm (Black)', 3, '2025-07-28', 'A5', 'Project A5: 3D Printed Components'),
-('john_doe', 'Digital Caliper (150mm)', 1, '2025-07-29', 'A5', 'Project A5: Quality Measurement Tool'),
-
--- Project B2: Automated Assembly Line
-('mike_chen', 'NEMA 17 Stepper Motor', 4, '2025-07-27', 'B2', 'Project B2: Conveyor Belt Motors'),
-('mike_chen', 'Robotic Arm Servo (MG996R)', 2, '2025-07-28', 'B2', 'Project B2: Robotic Arm Installation'),
-('mike_chen', 'Ball Bearing (608ZZ)', 20, '2025-07-29', 'B2', 'Project B2: Conveyor System Bearings'),
-('mike_chen', 'Aluminum 6061 Rod (20mm)', 8, '2025-07-30', 'B2', 'Project B2: Frame Extension'),
+('billyKwang', 'Aluminum 6061 Rod (20mm)', 5, '2025-07-26', 'A5', 'Project A5: Device Manufacturing - Frame Construction'),
+('billyKwang', 'NEMA 17 Stepper Motor', 2, '2025-07-26', 'A5', 'Project A5: Device Manufacturing - Motor Installation'),
+('billyKwang', 'Ball Bearing (608ZZ)', 8, '2025-07-27', 'A5', 'Project A5: Device Manufacturing - Assembly'),
+('billyKwang', 'Digital Caliper (150mm)', 1, '2025-07-29', 'A5', 'Project A5: Quality Measurement Tool'),
 
 -- AMC Maintenance (MAINT)
-('admin', 'Industrial Coolant (5 Gallon)', 1, '2025-07-27', 'MAINT', 'AMC Maintenance - CNC Machine Coolant Refill'),
-('admin', 'Carbide End Mill (1/4 inch)', 2, '2025-07-28', 'MAINT', 'AMC Maintenance - Worn Tool Replacement'),
-('admin', 'Laser Cutter Focus Lens', 1, '2025-07-30', 'MAINT', 'AMC Maintenance - Laser Recalibration'),
-
--- Project C1: Prototype Development
-('sarah_smith', 'Aluminum 6061 Rod (20mm)', 3, '2025-07-29', 'C1', 'Project C1: Prototype Frame'),
-('sarah_smith', 'Stainless Steel Sheet (3mm)', 2, '2025-07-30', 'C1', 'Project C1: Enclosure Panels'),
-('sarah_smith', 'PLA Filament 1.75mm (Black)', 2, '2025-07-31', 'C1', 'Project C1: 3D Printed Brackets'),
-
--- August data for extended testing
-('john_doe', 'NEMA 17 Stepper Motor', 3, '2025-08-01', 'A5', 'Project A5: Additional Motors'),
-('mike_chen', 'Ball Bearing (608ZZ)', 15, '2025-08-02', 'B2', 'Project B2: Spare Bearings'),
-('admin', 'Industrial Coolant (5 Gallon)', 1, '2025-08-05', 'MAINT', 'AMC Maintenance - Monthly Refill');
-
+('Alice_123', 'Industrial Coolant (5 Gallon)', 1, '2025-07-27', 'MAINT', 'AMC Maintenance - CNC Machine Coolant Refill'),
+('Bob_456', 'Carbide End Mill (1/4 inch)', 2, '2025-07-28', 'MAINT', 'AMC Maintenance - Worn Tool Replacement'),
+('Alice_123', 'Laser Cutter Focus Lens', 1, '2025-07-30', 'MAINT', 'AMC Maintenance - Laser Recalibration');
 
 -- Create a specific user for the AI Search
 -- Added DROP to prevent errors if you run this script twice

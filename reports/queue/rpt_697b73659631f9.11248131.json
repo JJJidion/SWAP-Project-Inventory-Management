@@ -1,0 +1,18 @@
+{
+    "id": "rpt_697b73659631f9.11248131",
+    "params": {
+        "report_type": "parts_usage",
+        "start_date": "2025-07-01",
+        "end_date": "2025-07-30",
+        "filters": {
+            "supplier": "Blaser Swisslube"
+        }
+    },
+    "username": "Alice_123",
+    "status": "completed",
+    "created_at": 1769698149,
+    "completed_at": 1769698150,
+    "output_file": "parts_usage_report_20260129_154910.pdf",
+    "error": null,
+    "hash": "249888d10a93ad4e6f408eb435d8eb8695a9961cbd2ed16720eaf766720e07d9"
+}
