@@ -13,7 +13,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // 1. Configuration
 // Timeout duration in seconds (e.g., 1800 seconds = 30 minutes)
-$timeout_duration = 10; 
+$timeout_duration = 1800; 
 
 // 2. Check for Timeout
 if (isset($_SESSION['last_activity'])) {
