@@ -117,7 +117,7 @@ require_once '../includes/header.php';
                 <input type="text" name="supplier" id="inputSupplier" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="flex: 1;">
-                <label>Value ($):</label><br> <input type="number" step="0.01" name="cost_per_part" id="inputcost_per_part" placeholder="0.00" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <label>Value ($):</label><br> <input type="number" step="0.01" name="cost_per_part" id="inputcost_per_part" max="10000" placeholder="0.00" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="flex: 1;">
                 <label>Stock:</label><br>

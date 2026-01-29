@@ -51,13 +51,30 @@ INSERT INTO `users` (`id`, `email`, `username`, `password_hash`, `role`, `first_
 -- --------------------------------------------------------
 -- 4. Table: audit_logs (MOVED UP so it exists before we insert!)
 -- --------------------------------------------------------
-DROP TABLE IF EXISTS `audit_logs`;
-CREATE TABLE `audit_logs` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `user_id` INT,
-    `action` VARCHAR(255),
-    `timestamp` DATETIME DEFAULT CURRENT_TIMESTAMP
+DROP TABLE IF EXISTS audit_logs;
+CREATE TABLE audit_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    username VARCHAR(50),
+    role VARCHAR(20),
+    action VARCHAR(50),
+    entity VARCHAR(50),
+    entity_id INT NULL,
+    description TEXT,
+    ip_address VARCHAR(45),
+    user_agent VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO audit_logs (user_id, username, role, action, entity, description)
+VALUES (
+1,
+'Admin',
+'Admin',
+'SYSTEM_INIT',
+'database',
+'Database reset: Loaded Manufacturing Inventory'
+);
 
 -- --------------------------------------------------------
 -- 5. Table: parts_log (Ashton Neo) -- Deprecated //Moved here to ensure the audit tables exist before inventory
@@ -105,10 +122,6 @@ INSERT INTO `inventory` (`part_name`, `category`, `supplier`, `stock_level`, `co
 ('Robotic Arm Servo (MG996R)', 'Components', 'Lye Pro', 8, 6944.88),            
 ('Laser Cutter Focus Lens', 'Tooling', 'II-VI Infrared', 10, 2450.00),
 ('Ball Bearing (608ZZ)', 'Components', 'LZF Bearings', 200, 1.89);
-
--- 3. Log this update (NOW THIS WORKS)
-INSERT INTO `audit_logs` (`user_id`, `action`, `timestamp`) VALUES 
-(1, 'Database reset: Loaded Manufacturing Inventory', NOW());
 
 COMMIT;
 
@@ -160,6 +173,6 @@ DROP USER IF EXISTS 'ai_search_bot'@'localhost';
 CREATE USER 'ai_search_bot'@'localhost' IDENTIFIED BY 'StrongPassword123!';
 
 -- Grant ONLY SELECT permissions
-GRANT SELECT ON inv_management_db.* TO 'ai_search_bot'@'localhost';
+GRANT SELECT ON inv_management_db.* TO 'ai_search_bot'@'localhost'; -- Previously Commented out for DB Creation to work
 
-FLUSH PRIVILEGES;
+FLUSH PRIVILEGES; -- Previously Commented out for DB Creation to work
