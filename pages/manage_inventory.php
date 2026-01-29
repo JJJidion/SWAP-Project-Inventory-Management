@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'category' => $_POST['category'] ?? 'General',
             'supplier' => trim($_POST['supplier'] ?? ''),
             'quantity' => $_POST['quantity'] ?? 0,
-            'price' => $_POST['price'] ?? 0.00 // NEW FIELD
+            'cost_per_part' => $_POST['cost_per_part'] ?? 0.00 // NEW FIELD
         ];
         
         $userId = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 1;
@@ -117,7 +117,7 @@ require_once '../includes/header.php';
                 <input type="text" name="supplier" id="inputSupplier" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="flex: 1;">
-                <label>Value ($):</label><br> <input type="number" step="0.01" name="price" id="inputPrice" placeholder="0.00" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <label>Value ($):</label><br> <input type="number" step="0.01" name="cost_per_part" id="inputcost_per_part" placeholder="0.00" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="flex: 1;">
                 <label>Stock:</label><br>
@@ -154,7 +154,7 @@ require_once '../includes/header.php';
                     <td><?php echo htmlspecialchars($item['category']); ?></td>
                     <td><b><?php echo htmlspecialchars($item['part_name']); ?></b></td>
                     <td><?php echo htmlspecialchars($item['supplier']); ?></td>
-                    <td>$<?php echo number_format($item['price'], 2); ?></td> <td>
+                    <td>$<?php echo number_format($item['cost_per_part'], 2); ?></td> <td>
                         <?php echo $item['stock_level']; ?>
                         <?php if($item['stock_level'] < 10) echo " <span style='color:red; font-weight:bold;'>(Low)</span>"; ?>
                     </td>
@@ -165,7 +165,7 @@ require_once '../includes/header.php';
                             '<?php echo $item['stock_level']; ?>',
                             '<?php echo addslashes($item['category']); ?>',
                             '<?php echo addslashes($item['supplier']); ?>',
-                            '<?php echo $item['price']; ?>'
+                            '<?php echo $item['cost_per_part']; ?>'
                         )">Edit</button>
                         
                         <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this item?');">
@@ -183,7 +183,7 @@ require_once '../includes/header.php';
 </div>
 
 <script>
-function editItem(id, name, qty, cat, supp, price) {
+function editItem(id, name, qty, cat, supp, cost_per_part) {
     document.getElementById('inventoryForm').scrollIntoView({ behavior: 'smooth' });
 
     document.getElementById('formAction').value = 'update';
@@ -192,7 +192,7 @@ function editItem(id, name, qty, cat, supp, price) {
     document.getElementById('inputQty').value = qty;
     document.getElementById('inputCategory').value = cat;
     document.getElementById('inputSupplier').value = supp;
-    document.getElementById('inputPrice').value = price; // Fill Price Field
+    document.getElementById('inputcost_per_part').value = cost_per_part; // Fill cost_per_part Field
 
     document.getElementById('formTitle').innerText = '✏️ Edit Item';
     document.getElementById('submitBtn').innerText = 'Update Item';
@@ -208,7 +208,7 @@ function resetForm() {
     document.getElementById('inputName').value = '';
     document.getElementById('inputQty').value = '';
     document.getElementById('inputSupplier').value = '';
-    document.getElementById('inputPrice').value = ''; // Clear Price Field
+    document.getElementById('inputcost_per_part').value = ''; // Clear cost_per_part Field
     
     document.getElementById('formTitle').innerText = 'Add New Item';
     document.getElementById('submitBtn').innerText = 'Add Item';

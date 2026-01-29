@@ -110,9 +110,6 @@ INSERT INTO `inventory` (`part_name`, `category`, `supplier`, `stock_level`, `co
 INSERT INTO `audit_logs` (`user_id`, `action`, `timestamp`) VALUES 
 (1, 'Database reset: Loaded Manufacturing Inventory', NOW());
 
-ALTER TABLE `inventory` 
-ADD COLUMN `price` DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER `stock_level`; --  Conflicting code here, price and cost_per_part are the same variables
-
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
