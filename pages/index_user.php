@@ -43,6 +43,9 @@ $pageTitle = 'Warehouse Staff Dashboard';
     <button type="button" class="btn btn-success ms-2" onclick="window.location.href='user_search.php';">
     🔎 Search Inventory
     </button>
+    <button type="button" class="btn btn-success ms-2" onclick="window.location.href='parts_submission.php';">
+    📤 Submit Parts Claim
+    </button>
     </div>
 </body>
 </html>

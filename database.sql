@@ -111,7 +111,7 @@ CREATE TABLE `inventory` (
     `category` VARCHAR(50) DEFAULT 'General',
     `supplier` VARCHAR(100) DEFAULT 'Unknown',
     `stock_level` INT NOT NULL DEFAULT 0,
-    `cost_per_part` FLOAT(5,2), -- Not sure whether to use Float or Double
+    `cost_per_part` FLOAT(6,2),
     `status` ENUM('active', 'obsolete') DEFAULT 'active',
     `is_deleted` TINYINT(1) DEFAULT 0, 
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

@@ -9,6 +9,9 @@ session_start();
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../lib/dompdf/autoload.inc.php';
 
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
 // ============================================================================
 // CONFIGURATION CONSTANTS
 // ============================================================================
@@ -145,6 +148,7 @@ class ReportQueue {
     
     /**
      * Process the next pending item in queue (ONE at a time)
+     * Also logs the report to report_audit_log table
      */
     public function processNext(PDO $pdo): ?array {
         $files = glob($this->queueDir . '*.json');
@@ -175,6 +179,9 @@ class ReportQueue {
                     $outputFile = $this->outputDir . $result['filename'];
                     file_put_contents($outputFile, $result['pdf']);
                     
+                    // Log to report_audit_log table for integrity verification
+                    $this->logReportToDatabase($pdo, $result['hash']);
+                    
                     $this->updateStatus($item['id'], [
                         'status' => 'completed',
                         'completed_at' => time(),
@@ -184,6 +191,7 @@ class ReportQueue {
                     
                     $item['status'] = 'completed';
                     $item['output_file'] = $result['filename'];
+                    $item['hash'] = $result['hash'];
                     
                 } catch (Exception $e) {
                     $this->updateStatus($item['id'], [
@@ -200,6 +208,15 @@ class ReportQueue {
         }
         
         return null;
+    }
+    
+    /**
+     * Log report hash to database for audit/integrity verification
+     */
+    private function logReportToDatabase(PDO $pdo, string $hash): void {
+        $sql = "INSERT INTO report_audit_log (SHA256_ID, claim_submission_time) VALUES (:hash, NOW())";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([':hash' => $hash]);
     }
     
     /**
@@ -922,8 +939,8 @@ class AMCReportGenerator {
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Configuration for low stock detection
-        $lowStockThreshold = 10;  // Items with stock < 10 are considered low
-        $restockQty = 10;          // Recommended restock quantity
+        $lowStockThreshold = LOW_STOCK_THRESHOLD;  // Items with stock < 10 are considered low
+        $restockQty = RESTOCK_QUANTITY;          // Recommended restock quantity
         
         // Calculate statistics
         $lowStockItems = [];
@@ -1160,6 +1177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
                 throw new Exception("Please select both start and end dates");
             }
             
+            // Server-side date validation
             if (strtotime($startDate) > strtotime($endDate)) {
                 throw new Exception("Start Date must be earlier than End Date");
             }
@@ -1349,6 +1367,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
             background-color: #555;
         }
         
+        .btn-generate:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
+        
         .btn-reset {
             background-color: #6c757d;
             color: #fff;
@@ -1362,6 +1385,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
         
         .btn-reset:hover {
             background-color: #545b62;
+        }
+        
+        .btn-secondary {
+            background-color: #17a2b8;
+            color: #fff;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #138496;
         }
         
         /* Alert messages */
@@ -1381,6 +1420,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
             background-color: #e8f5e9;
             border: 1px solid #a5d6a7;
             color: #2e7d32;
+        }
+        
+        .alert-warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+        }
+        
+        .alert-info {
+            background-color: #e3f2fd;
+            border: 1px solid #90caf9;
+            color: #1565c0;
         }
         
         /* Info box */
@@ -1406,6 +1457,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
             display: flex;
             gap: 10px;
             margin-top: 20px;
+            flex-wrap: wrap;
         }
         
         /* Summary display box */
@@ -1429,6 +1481,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
             .date-range {
                 grid-template-columns: 1fr;
             }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn-reset {
+                margin-left: 0;
+                margin-top: 10px;
+            }
         }
     </style>
 </head>
@@ -1444,15 +1505,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
                 <?php echo htmlspecialchars($message); ?>
             </div>
         <?php endif; ?>
-
-                <!-- Cooldown Warning Banner (Misuse Case 5.2) -->
+        
+        <!-- Cooldown Warning Banner -->
         <?php if ($cooldownStatus['on_cooldown']): ?>
             <div class="alert alert-warning" id="cooldownAlert">
                 <strong>⏱️ Cooldown Active:</strong> 
                 Please wait <span id="cooldownTimer"><?php echo $cooldownStatus['seconds']; ?></span> seconds before generating another report.
             </div>
         <?php endif; ?>
-
+        
         <!-- Queue Status -->
         <?php if ($pendingCount > 0): ?>
             <div class="alert alert-info">
@@ -1584,12 +1645,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
                 
                 <div class="button-group">
                     <button type="submit" name="generate" value="1" class="btn-generate" 
-        id="generateBtn" <?php echo $cooldownStatus['on_cooldown'] ? 'disabled' : ''; ?>>
+                            id="generateBtn" <?php echo $cooldownStatus['on_cooldown'] ? 'disabled' : ''; ?>>
                         📄 Generate & View PDF
                     </button>
                     <button type="button" onclick="resetForm()" class="btn-reset">
                         🔄 Reset Form
                     </button>
+                    <a href="report_log.php" class="btn-secondary">
+                        📋 View Report Audit Log
+                    </a>
                 </div>
             </div>
         </form>
@@ -1598,13 +1662,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
     <?php require_once '../includes/footer.php'; ?>
     
     <script>
-
         // ====================================================================
-        // COOLDOWN TIMER (Misuse Case 5.2)
+        // COOLDOWN TIMER
         // ====================================================================
-
+        
         let cooldownSeconds = <?php echo $cooldownStatus['seconds']; ?>;
-
+        
         if (cooldownSeconds > 0) {
             const timerEl = document.getElementById('cooldownTimer');
             const btnEl = document.getElementById('generateBtn');
@@ -1632,14 +1695,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
                 }
             }, 1000);
         }
-        // ====================================================================
-        // JAVASCRIPT FOR REPORT MANAGEMENT PAGE
-        // ====================================================================
         
-        // --------------------------------------------------------------------
+        // ====================================================================
         // INITIALIZATION: Set default dates on page load
-        // --------------------------------------------------------------------
-        // Default: First day of current month to today
+        // ====================================================================
         
         const today = new Date();
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -1647,47 +1706,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
         document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
         document.getElementById('endDate').value = today.toISOString().split('T')[0];
         
-        // --------------------------------------------------------------------
+        // Set max date to today (prevent future dates)
+        document.getElementById('startDate').max = today.toISOString().split('T')[0];
+        document.getElementById('endDate').max = today.toISOString().split('T')[0];
+        
+        // ====================================================================
         // REPORT TYPE SELECTION
-        // --------------------------------------------------------------------
-        /**
-         * Handle report type card selection
-         * - Updates the hidden input value
-         * - Applies 'selected' class to clicked card
-         * - Shows/hides project filter (only for parts_usage)
-         * 
-         * @param {string} type - The report type: 'parts_usage', 'finance', or 'inventory'
-         */
+        // ====================================================================
+        
         function selectReportType(type) {
-            // Update hidden input
             document.getElementById('reportType').value = type;
             
-            // Update card styles - remove 'selected' from all, add to clicked
             document.querySelectorAll('.report-type-card').forEach(card => {
                 card.classList.remove('selected');
             });
             document.querySelector(`[data-type="${type}"]`).classList.add('selected');
             
-            // Show/hide project filter (only relevant for parts_usage report)
             const projectFilter = document.getElementById('projectFilterGroup');
             if (type === 'parts_usage') {
                 projectFilter.classList.add('show');
             } else {
                 projectFilter.classList.remove('show');
-                document.getElementById('project_id').value = '';  // Clear selection
+                document.getElementById('project_id').value = '';
             }
             
-            // Update the summary display
             updateSummary();
         }
         
-        // --------------------------------------------------------------------
+        // ====================================================================
         // SUMMARY DISPLAY UPDATE
-        // --------------------------------------------------------------------
-        /**
-         * Update the summary box showing current selections
-         * Called whenever any form input changes
-         */
+        // ====================================================================
+        
         function updateSummary() {
             const reportType = document.getElementById('reportType').value;
             const startDate = document.getElementById('startDate').value;
@@ -1700,19 +1749,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
             const summaryText = document.getElementById('summaryText');
             
             if (reportType) {
-                // Map type codes to display names
                 const typeNames = {
                     'parts_usage': 'Parts Usage Report',
                     'finance': 'Finance Report',
                     'inventory': 'Inventory Report'
                 };
                 
-                // Build summary text
                 let text = `<strong>Report:</strong> ${typeNames[reportType]}<br>`;
                 text += `<strong>Date Range:</strong> ${formatDate(startDate)} to ${formatDate(endDate)}<br>`;
                 text += `<strong>Filters:</strong> `;
                 
-                // List active filters
                 let filters = [];
                 if (category) filters.push(`Category: ${category}`);
                 if (supplier) filters.push(`Supplier: ${supplier}`);
@@ -1727,15 +1773,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
             }
         }
         
-        // --------------------------------------------------------------------
+        // ====================================================================
         // DATE FORMATTING HELPER
-        // --------------------------------------------------------------------
-        /**
-         * Format a date string as DD/MM/YYYY for display
-         * 
-         * @param {string} dateStr - Date in YYYY-MM-DD format
-         * @return {string} - Date in DD/MM/YYYY format
-         */
+        // ====================================================================
+        
         function formatDate(dateStr) {
             if (!dateStr) return '';
             const date = new Date(dateStr);
@@ -1745,44 +1786,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
             return `${day}/${month}/${year}`;
         }
         
-        // --------------------------------------------------------------------
+        // ====================================================================
         // FORM RESET
-        // --------------------------------------------------------------------
-        /**
-         * Reset the form to initial state
-         * - Clears all selections
-         * - Resets dates to defaults
-         * - Hides summary and project filter
-         */
+        // ====================================================================
+        
         function resetForm() {
             document.getElementById('reportForm').reset();
             document.getElementById('reportType').value = '';
             
-            // Remove 'selected' class from all report type cards
             document.querySelectorAll('.report-type-card').forEach(card => {
                 card.classList.remove('selected');
             });
             
-            // Hide project filter and summary
             document.getElementById('projectFilterGroup').classList.remove('show');
             document.getElementById('selectedSummary').style.display = 'none';
             
-            // Reset dates to defaults
             const today = new Date();
             const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
             document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
             document.getElementById('endDate').value = today.toISOString().split('T')[0];
         }
         
-        // --------------------------------------------------------------------
-        // FORM VALIDATION
-        // --------------------------------------------------------------------
-        /**
-         * Validate form before submission
-         * - Ensures report type is selected
-         * - Ensures both dates are provided
-         * - Validates date range (start <= end)
-         */
+        // ====================================================================
+        // FORM VALIDATION - Ensures start date is not after end date
+        // ====================================================================
+        
         document.getElementById('reportForm').addEventListener('submit', function(e) {
             const reportType = document.getElementById('reportType').value;
             const startDate = document.getElementById('startDate').value;
@@ -1800,20 +1828,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate'])) {
                 return;
             }
             
+            // Date validation - start must be before or equal to end
             if (new Date(startDate) > new Date(endDate)) {
                 e.preventDefault();
-                alert('Start Date must be earlier than End Date');
+                alert('Start Date must be earlier than or equal to End Date');
+                return;
+            }
+            
+            // Cooldown check
+            if (cooldownSeconds > 0) {
+                e.preventDefault();
+                alert('Please wait for the cooldown timer to complete.');
                 return;
             }
         });
         
-        // --------------------------------------------------------------------
-        // EVENT LISTENERS FOR FILTER CHANGES
-        // --------------------------------------------------------------------
-        // Update summary display whenever any filter value changes
+        // ====================================================================
+        // REAL-TIME DATE VALIDATION
+        // ====================================================================
         
-        document.getElementById('startDate').addEventListener('change', updateSummary);
-        document.getElementById('endDate').addEventListener('change', updateSummary);
+        document.getElementById('startDate').addEventListener('change', function() {
+            const startDate = this.value;
+            const endDateInput = document.getElementById('endDate');
+            
+            // Set minimum end date to start date
+            endDateInput.min = startDate;
+            
+            // If end date is before start date, reset it
+            if (endDateInput.value && new Date(endDateInput.value) < new Date(startDate)) {
+                endDateInput.value = startDate;
+            }
+            
+            updateSummary();
+        });
+        
+        document.getElementById('endDate').addEventListener('change', function() {
+            const endDate = this.value;
+            const startDateInput = document.getElementById('startDate');
+            
+            // If start date is after end date, show warning
+            if (startDateInput.value && new Date(startDateInput.value) > new Date(endDate)) {
+                alert('End Date cannot be earlier than Start Date');
+                this.value = startDateInput.value;
+            }
+            
+            updateSummary();
+        });
+        
+        // ====================================================================
+        // EVENT LISTENERS FOR FILTER CHANGES
+        // ====================================================================
+        
         document.getElementById('category').addEventListener('change', updateSummary);
         document.getElementById('supplier').addEventListener('change', updateSummary);
         document.getElementById('project_id').addEventListener('change', updateSummary);
