@@ -1,18 +1,32 @@
 <?php
 /**
  * Update Profile Page
+ *
+ * This script handles the modification of user account details.
+ * It includes robust Role-Based Access Control (RBAC) to ensure:
+ * 1. Administrators can edit any account.
+ * 2. Standard Users can ONLY edit their own account.
+ * 3. Role elevation is restricted to Administrators only.
  */
+
 session_start();
+
+// 1. Configuration & Imports
 require_once __DIR__ . '/../config/config.php';
 $pageTitle = 'Update Profile';
 
-// Check if user is logged in
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
+// 2. Authentication Check
+// Verify the user is logged in before allowing access.
 if (!isset($_SESSION["username"])) {
     header("Location: login.php");
     exit;
 }
 
-// Ensure ID is provided in URL
+// 3. Input Validation
+// Ensure a Target User ID is present in the URL.
 if (!isset($_GET['id'])) {
     die("Error: User ID not specified.");
 }
@@ -22,38 +36,61 @@ $currentUserId = $_SESSION['user_id'];
 $currentUserRole = $_SESSION['role'];
 $error = '';
 
-// Security: Prevent users from editing others' profiles unless they are Admin
+// 4. Authorization & Access Control
+// Critical Security Check:
+// - Allow access if the user is an Admin.
+// - Allow access if the user is editing their OWN profile ($requestedUserId == $currentUserId).
+// - Deny access for everything else.
 if ($currentUserRole !== 'Admin' && $requestedUserId != $currentUserId) {
     error_log("Security Alert: User $currentUserId tried to access profile $requestedUserId");
     die("Error: You are not authorized to edit this profile.");
 }
 
-// --- 1. HANDLE FORM SUBMISSION (POST) ---
+// --- 5. HANDLE FORM SUBMISSION (POST Request) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $firstName   = $_POST['first_name'];
-    $lastName    = $_POST['last_name'];
-    $username    = $_POST['username'];
-    $email       = $_POST['email'];
-    $role        = $_POST['role'];
-    $phoneNumber = $_POST['phone_number'];
+    $firstName       = $_POST['first_name'];
+    $lastName        = $_POST['last_name'];
+    $username        = $_POST['username'];
+    $email           = $_POST['email'];
+    $phoneNumber     = $_POST['phone_number'];
+    
+    // SECURITY: Role Tampering Prevention
+    // Logic: Only Admins can submit a 'role' change via POST.
+    // If a non-admin tries to change their role, we ignore the POST data
+    // and fetch their existing role from the database instead.
+    $roleToSave = '';
+    
+    if ($currentUserRole === 'Admin') {
+        $roleToSave = $_POST['role'];
+    } else {
+        // Fetch the existing immutable role from the database
+        $roleQuery = $conn->prepare("SELECT role FROM users WHERE id = ?");
+        $roleQuery->bind_param("i", $requestedUserId);
+        $roleQuery->execute();
+        $roleResult = $roleQuery->get_result();
+        $roleRow = $roleResult->fetch_assoc();
+        $roleToSave = $roleRow['role'];
+        $roleQuery->close();
+    }
+
     $isValid = true;
 
-    // A. Basic Fields Check (Removed Password from this list)
+    // A. Required Fields Validation
     if (empty($_POST['first_name']) || empty($_POST['last_name']) || 
         empty($_POST['username']) || empty($_POST['email']) || 
-        empty($_POST['role']) || empty($_POST['phone_number'])) {
+        empty($_POST['phone_number'])) {
         
         $error = "Error: Basic profile fields cannot be empty";
         $isValid = false;
     }
 
-    // B. Optional Password Logic
+    // B. Password Logic (Optional Update)
     $password = $_POST['password'];
     $confirmPassword = $_POST['confirm_password'];
     $updatePassword = false;
 
-    // Only validate if the user typed something in the password field
+    // Only validate password rules if the user actually typed something
     if (!empty($password)) {
         $updatePassword = true;
 
@@ -61,11 +98,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Error: Passwords do not match";
             $isValid = false;
         } 
-        // Server-Side Complexity Enforcement
+        // Server-Side Complexity Enforcement (Length check)
         elseif (strlen($password) < 10) {
             $error = "Error: Password must be at least 10 characters long.";
             $isValid = false;
         } 
+        // Server-Side Complexity Enforcement (Regex check)
         elseif (!preg_match("/[A-Z]/", $password) || 
                 !preg_match("/[a-z]/", $password) || 
                 !preg_match("/[0-9]/", $password) || 
@@ -84,36 +122,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Validate Role (Security against Inspect Element hacks)
-        $allowedRoles = ['Admin', 'User'];
-        if (!in_array($role, $allowedRoles)) {
-            $error = "Error: Invalid role selected.";
-            $isValid = false;
+        // Only necessary if the current user is an Admin
+        if ($currentUserRole === 'Admin') {
+            $allowedRoles = ['Admin', 'User'];
+            if (!in_array($roleToSave, $allowedRoles)) {
+                $error = "Error: Invalid role selected.";
+                $isValid = false;
+            }
         }
 
-        // Validate Phone (Exactly 8 Digits)
+        // Validate Phone (Strict 8-digit requirement)
         if (!preg_match("/^[0-9]{8}$/", $phoneNumber)) {
             $error = "Error: Phone number must be exactly 8 digits.";
             $isValid = false;
         }
     }
 
+    // C. Database Update Execution
     if ($isValid) {
 
-        // C. Database Update Logic
+        // Logic Split: Determine if we are updating the password or not.
         if ($updatePassword) {
-            // Path 1: Update EVERYTHING including Password
+            // Path 1: Update EVERYTHING including Password (Hashing required)
             $passwordHash = password_hash($password, PASSWORD_BCRYPT);
             
             $query = $conn->prepare("UPDATE users SET username = ?, email = ?, password_hash = ?, first_name = ?, last_name = ?, role = ?, phone_number = ?, updated_at = NOW() WHERE id = ?");
-            $query->bind_param('sssssssi', $username, $email, $passwordHash, $firstName, $lastName, $role, $phoneNumber, $requestedUserId);
+            $query->bind_param('sssssssi', $username, $email, $passwordHash, $firstName, $lastName, $roleToSave, $phoneNumber, $requestedUserId);
         } else {
-            // Path 2: Update ONLY profile info (Keep old password)
+            // Path 2: Update ONLY profile info (Keep old password intact)
             $query = $conn->prepare("UPDATE users SET username = ?, email = ?, first_name = ?, last_name = ?, role = ?, phone_number = ?, updated_at = NOW() WHERE id = ?");
-            $query->bind_param('ssssssi', $username, $email, $firstName, $lastName, $role, $phoneNumber, $requestedUserId);
+            $query->bind_param('ssssssi', $username, $email, $firstName, $lastName, $roleToSave, $phoneNumber, $requestedUserId);
         }
 
         if ($query->execute()) {
-            // Redirect based on who is editing
+            // Success: Redirect based on role
+            // Admins go back to management list; Users go back to their profile view.
             $redirect = ($currentUserRole === 'Admin') ? 'account_management.php' : 'profile.php';
             echo "<script>alert('Profile successfully updated!'); window.location.href='$redirect';</script>";
             exit; 
@@ -124,7 +167,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 }
 
-// --- 2. FETCH USER DATA (GET) ---
+// --- 6. FETCH EXISTING DATA (GET Request) ---
+// Populates the form fields with the current data from the database.
 $sql = "SELECT id, username, email, first_name, last_name, role, phone_number FROM users WHERE id = ?";
 $userData = null;
 
@@ -205,6 +249,7 @@ if ($stmt = $conn->prepare($sql)) {
                     </div>
                 </div>
 
+                <?php if ($currentUserRole === 'Admin'): ?>
                 <div class="form-group">
                     <label>Role</label>
                     <select name="role" required style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; background-color: white;">
@@ -212,6 +257,7 @@ if ($stmt = $conn->prepare($sql)) {
                         <option value="User" <?php echo ($userData['role'] == 'User') ? 'selected' : ''; ?>>User</option>
                     </select>
                 </div>
+                <?php endif; ?>
 
                 <div class="form-group">
                     <label>Phone Number</label>
@@ -221,6 +267,7 @@ if ($stmt = $conn->prepare($sql)) {
                 <div style="margin-top: 2rem; display:flex; gap: 10px;">
                     <button type="submit" class="btn btn-primary">Update Profile</button>
                     <?php 
+                        // Determine where to send the user if they click Cancel
                         $cancelLink = ($currentUserRole === 'Admin') ? 'account_management.php' : 'profile.php';
                     ?>
                     <a href="<?php echo $cancelLink; ?>" class="btn btn-danger">Cancel</a>
@@ -235,6 +282,7 @@ if ($stmt = $conn->prepare($sql)) {
     </div>
 
     <script>
+        // Client-Side Validation
         document.getElementById('updateProfileForm').addEventListener('submit', function(e) {
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm_password').value;

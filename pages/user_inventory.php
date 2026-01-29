@@ -4,6 +4,9 @@ session_start();
 require_once '../config/config.php';
 require_once '../utils/inventory_logic.php';
 
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
 // --- SECURITY: ACCESS CONTROL ---
 $allowedRoles = ['User', 'Admin', 'Inventory Manager'];
 if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowedRoles)) {

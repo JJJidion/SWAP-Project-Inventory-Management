@@ -8,6 +8,9 @@
 session_start();
 require_once __DIR__ . '/../config/config.php';
 
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
 // SECURITY CHECK: Ensure the user is actually logged in AND is an User
 // If they are not logged in OR they are not an User, kick them out.
 if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "User") {
@@ -17,7 +20,7 @@ if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "User") {
 
 
 
-$pageTitle = 'User Dashboard';
+$pageTitle = 'Warehouse Staff Dashboard';
 ?>
 
 <!DOCTYPE html>
@@ -31,7 +34,7 @@ $pageTitle = 'User Dashboard';
 
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
-    <div class="container mt-5"> <h1>User Dashboard</h1>
+    <div class="container mt-5"> <h1>Warehouse Staff Dashboard</h1>
         <h3>Welcome, <?php echo htmlspecialchars($_SESSION["first_name"]); ?>!</h3>
         <br>
     <button type="button" class="btn btn-success ms-2" onclick="window.location.href='user_inventory.php';">

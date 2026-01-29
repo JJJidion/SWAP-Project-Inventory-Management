@@ -2,28 +2,42 @@
 /**
  * Profile Page
  *
- * Page allows users to view and update their profile information.
+ * This page displays the currently logged-in user's account details.
+ * It retrieves data securely from the database using the session username.
  */
 
 session_start();
+
+// 1. Configuration & Imports
 require_once __DIR__ . '/../config/config.php';
 
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
+// 2. Authentication Check
+// Verify the user is logged in. If not, redirect to login page.
 if (!isset($_SESSION["username"])) {
     header("Location: login.php");
     exit;
 }
-$pageTitle = 'Profile Page';
 
+$pageTitle = 'Profile Page';
 $username = $_SESSION["username"];
+
+// 3. Data Retrieval
+// We use a Prepared Statement here to prevent SQL Injection.
 $sql = "SELECT id, first_name, last_name, username, email, role, phone_number FROM users WHERE username = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $username);
+
 if ($stmt->execute()) {
     $result = $stmt->get_result();
 
+    // Check if user exists
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
         
+        // Assign variables for display in HTML
         $id = $row["id"];
         $firstName = $row["first_name"];
         $lastName = $row["last_name"];
@@ -32,12 +46,15 @@ if ($stmt->execute()) {
         $role = $row["role"];
         $phoneNumber = $row["phone_number"];
     } else {
+        // Fallback if user is not found in DB
         echo "No book found with that ID.";
     }
 } else {
+    // Database execution error
     echo "Error searching: " . $conn->error;
 }
-    $stmt->close();
+
+$stmt->close();
 ?>
 
 <!DOCTYPE html>
@@ -51,6 +68,7 @@ if ($stmt->execute()) {
 
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
+    
     <div class="container">
         <h1>Profile</h1>
 

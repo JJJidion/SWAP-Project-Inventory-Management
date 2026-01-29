@@ -152,6 +152,7 @@ main {
     cursor: pointer;
     text-decoration: none;
     transition: background-color 0.3s;
+    font-size: 1rem;
 }
 
 .btn-primary {
@@ -164,12 +165,21 @@ main {
 }
 
 .btn-danger {
-    background-color: #f44336;
+    background-color: #dc3545; /* Standard Danger Red */
     color: white;
 }
 
 .btn-danger:hover {
-    background-color: #da190b;
+    background-color: #c82333;
+}
+
+.btn-secondary {
+    background-color: #6c757d; /* Standard Grey */
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
 }
 
 .btn-edit {
@@ -179,6 +189,21 @@ main {
 
 .btn-edit:hover {
     background-color: #0b7dda;
+}
+
+/* Button variants for Tables (Smaller, text-like) */
+.btn-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0 5px;
+    cursor: pointer;
+    text-decoration: underline;
+    color: #007bff;
+}
+
+.btn-link.text-danger {
+    color: #dc3545;
 }
 
 /* ========================================
@@ -197,17 +222,25 @@ main {
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 1rem;
+    background-color: white; /* Ensure white bg for selects */
 }
 
 .form-group textarea {
     resize: vertical;
     min-height: 100px;
+}
+
+.form-actions {
+    margin-top: 2rem;
+    display: flex;
+    gap: 10px;
 }
 
 /* ========================================
@@ -226,10 +259,17 @@ main {
     border: 1px solid #c3e6cb;
 }
 
-.alert-error {
+.alert-error, 
+.alert-danger {
     background-color: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;
+}
+
+.alert-info {
+    background-color: #cce5ff;
+    color: #004085;
+    border: 1px solid #b8daff;
 }
 
 /* ========================================
@@ -249,10 +289,15 @@ footer {
    TABLES
    ======================================== */
 
+.table-responsive {
+    overflow-x: auto; /* Scroll horizontally on mobile */
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 1rem;
+    background-color: white;
 }
 
 table th,
@@ -265,6 +310,7 @@ table td {
 table th {
     background-color: #f8f9fa;
     font-weight: bold;
+    color: #333;
 }
 
 table tr:hover {
@@ -316,7 +362,72 @@ table tr:hover {
 }
 
 /* ========================================
-   Report Management Page Styles
+   ACCOUNT MANAGEMENT & ADMIN STYLES
    ======================================== */
 
-/* The Styles have been stored locally on the php file since DomPDF Cannot read the style.css file.*/
+/* Highlight the logged-in user in tables */
+.current-user-row {
+    background-color: #e3f2fd !important; /* Light Blue, important to override hover */
+    border-left: 4px solid #2196F3;
+}
+
+.current-user-row td {
+    font-weight: 500;
+    color: #0d47a1;
+}
+
+/* Badges for status or roles */
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.4em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+
+.badge-info {
+    color: #fff;
+    background-color: #17a2b8;
+}
+
+/* Delete Confirmation Card Styles */
+.delete-card {
+    max-width: 500px;
+    margin: 50px auto;
+    border: 1px solid #dc3545;
+    border-top: 5px solid #dc3545;
+    background-color: #fff;
+}
+
+.delete-card h2 {
+    color: #dc3545;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.user-details {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 15px 0;
+    text-align: left;
+    border-left: 4px solid #6c757d;
+}
+
+.user-details p {
+    margin: 5px 0;
+    font-size: 0.95rem;
+}
+
+.warning-text {
+    color: #721c24;
+    background-color: #f8d7da;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    border: 1px solid #f5c6cb;
+}

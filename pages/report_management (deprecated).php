@@ -7,6 +7,9 @@ session_start();
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../lib/dompdf/autoload.inc.php'; // Importing the Dompdf Library
 
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
 $pageTitle = 'Report Management';
 
 if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "Admin") {
