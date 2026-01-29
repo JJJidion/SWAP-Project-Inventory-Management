@@ -46,27 +46,79 @@ $currentPage = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $offset = ($currentPage - 1) * $recordsPerPage;
 
 // ============================================================================
+// FETCH FILTER OPTIONS
+// ============================================================================
+
+$users = $pdo->query("SELECT DISTINCT generated_by FROM report_audit_log WHERE generated_by IS NOT NULL ORDER BY generated_by")->fetchAll();
+$reportTypes = $pdo->query("SELECT DISTINCT report_type FROM report_audit_log WHERE report_type IS NOT NULL ORDER BY report_type")->fetchAll();
+
+// ============================================================================
+// BUILD QUERY WITH FILTERS
+// ============================================================================
+
+$whereConditions = [];
+$params = [];
+
+if (!empty($_GET['filter_user'])) {
+    $whereConditions[] = "generated_by = :generated_by";
+    $params[':generated_by'] = $_GET['filter_user'];
+}
+
+if (!empty($_GET['filter_type'])) {
+    $whereConditions[] = "report_type = :report_type";
+    $params[':report_type'] = $_GET['filter_type'];
+}
+
+if (!empty($_GET['filter_date_from'])) {
+    $whereConditions[] = "DATE(claim_submission_time) >= :date_from";
+    $params[':date_from'] = $_GET['filter_date_from'];
+}
+
+if (!empty($_GET['filter_date_to'])) {
+    $whereConditions[] = "DATE(claim_submission_time) <= :date_to";
+    $params[':date_to'] = $_GET['filter_date_to'];
+}
+
+$whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
+
+// ============================================================================
 // COUNT TOTAL RECORDS
 // ============================================================================
 
-$countSql = "SELECT COUNT(*) as total FROM report_audit_log";
-$totalRecords = $pdo->query($countSql)->fetch()['total'];
+$countSql = "SELECT COUNT(*) as total FROM report_audit_log $whereClause";
+$countStmt = $pdo->prepare($countSql);
+$countStmt->execute($params);
+$totalRecords = $countStmt->fetch()['total'];
 $totalPages = ceil($totalRecords / $recordsPerPage);
 
 // ============================================================================
 // FETCH RECORDS
 // ============================================================================
 
-$sql = "SELECT id, SHA256_ID, claim_submission_time 
+$sql = "SELECT id, SHA256_ID, report_type, generated_by, claim_submission_time 
         FROM report_audit_log 
+        $whereClause
         ORDER BY claim_submission_time DESC 
         LIMIT :limit OFFSET :offset";
 
 $stmt = $pdo->prepare($sql);
+foreach ($params as $key => $value) {
+    $stmt->bindValue($key, $value);
+}
 $stmt->bindValue(':limit', $recordsPerPage, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $records = $stmt->fetchAll();
+
+// ============================================================================
+// REPORT TYPE DISPLAY NAMES
+// ============================================================================
+
+$reportTypeNames = [
+    'parts_usage' => 'Parts Usage Report',
+    'finance' => 'Finance Report',
+    'inventory' => 'Inventory Report'
+];
 ?>
 
 <!DOCTYPE html>
@@ -77,9 +129,8 @@ $records = $stmt->fetchAll();
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/style.css">
     <title><?php echo $pageTitle; ?></title>
     <style>
-        /* Styles are here to prevent conflict with other pages */
         .audit-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 30px auto;
             padding: 0 20px;
         }
@@ -162,6 +213,65 @@ $records = $stmt->fetchAll();
             color: #666;
         }
         
+        /* Filter Form */
+        .filter-form {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr) auto;
+            gap: 15px;
+            align-items: end;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .filter-group label {
+            font-size: 0.85rem;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-filter {
+            background: #333;
+            color: #fff;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .btn-filter:hover {
+            background: #555;
+        }
+        
+        .btn-clear {
+            background: #6c757d;
+            color: #fff;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .btn-clear:hover {
+            background: #545b62;
+        }
+        
         /* Table */
         .table-container {
             overflow-x: auto;
@@ -196,11 +306,12 @@ $records = $stmt->fetchAll();
         
         .hash-cell {
             font-family: 'Courier New', Courier, monospace;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             background: #f5f5f5;
             padding: 8px 12px;
             border-radius: 4px;
             word-break: break-all;
+            max-width: 400px;
         }
         
         .copy-btn {
@@ -224,6 +335,30 @@ $records = $stmt->fetchAll();
         
         .text-center {
             text-align: center;
+        }
+        
+        /* Report Type Badge */
+        .report-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .badge-parts_usage {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .badge-finance {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        
+        .badge-inventory {
+            background: #e8f5e9;
+            color: #2e7d32;
         }
         
         /* Pagination */
@@ -271,13 +406,24 @@ $records = $stmt->fetchAll();
             margin-bottom: 15px;
         }
         
+        @media (max-width: 1200px) {
+            .filter-form {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
         @media (max-width: 768px) {
             .summary-box {
                 flex-direction: column;
             }
             
+            .filter-form {
+                grid-template-columns: 1fr;
+            }
+            
             .hash-cell {
-                font-size: 0.7rem;
+                font-size: 0.65rem;
+                max-width: 200px;
             }
         }
     </style>
@@ -308,6 +454,55 @@ $records = $stmt->fetchAll();
             </div>
         </div>
         
+        <!-- Filters -->
+        <div class="card">
+            <h2>🔍 Filter Records</h2>
+            <form method="GET" class="filter-form">
+                <div class="filter-group">
+                    <label for="filter_user">Generated By</label>
+                    <select name="filter_user" id="filter_user">
+                        <option value="">All Users</option>
+                        <?php foreach ($users as $user): ?>
+                            <option value="<?php echo htmlspecialchars($user['generated_by']); ?>"
+                                <?php echo (isset($_GET['filter_user']) && $_GET['filter_user'] === $user['generated_by']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($user['generated_by']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="filter_type">Report Type</label>
+                    <select name="filter_type" id="filter_type">
+                        <option value="">All Types</option>
+                        <?php foreach ($reportTypes as $type): ?>
+                            <option value="<?php echo htmlspecialchars($type['report_type']); ?>"
+                                <?php echo (isset($_GET['filter_type']) && $_GET['filter_type'] === $type['report_type']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($reportTypeNames[$type['report_type']] ?? $type['report_type']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="filter_date_from">Date From</label>
+                    <input type="date" name="filter_date_from" id="filter_date_from" 
+                           value="<?php echo htmlspecialchars($_GET['filter_date_from'] ?? ''); ?>">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="filter_date_to">Date To</label>
+                    <input type="date" name="filter_date_to" id="filter_date_to" 
+                           value="<?php echo htmlspecialchars($_GET['filter_date_to'] ?? ''); ?>">
+                </div>
+                
+                <div class="filter-buttons">
+                    <button type="submit" class="btn-filter">Apply</button>
+                    <a href="report_audit_log.php" class="btn-clear">Clear</a>
+                </div>
+            </form>
+        </div>
+        
         <!-- Records Table -->
         <div class="card">
             <h2>📋 Generated Reports</h2>
@@ -325,15 +520,23 @@ $records = $stmt->fetchAll();
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 80px;">ID</th>
+                                <th style="width: 60px;">ID</th>
+                                <th style="width: 150px;">Report Type</th>
+                                <th style="width: 120px;">Generated By</th>
                                 <th>SHA-256 Hash</th>
-                                <th style="width: 200px;">Generated At</th>
+                                <th style="width: 170px;">Generated At</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($records as $record): ?>
                                 <tr>
                                     <td class="text-center"><?php echo $record['id']; ?></td>
+                                    <td>
+                                        <span class="report-badge badge-<?php echo htmlspecialchars($record['report_type'] ?? ''); ?>">
+                                            <?php echo htmlspecialchars($reportTypeNames[$record['report_type']] ?? $record['report_type'] ?? 'Unknown'); ?>
+                                        </span>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($record['generated_by'] ?? '-'); ?></td>
                                     <td>
                                         <span class="hash-cell" id="hash-<?php echo $record['id']; ?>">
                                             <?php echo htmlspecialchars($record['SHA256_ID']); ?>
@@ -352,9 +555,17 @@ $records = $stmt->fetchAll();
                 <!-- Pagination -->
                 <?php if ($totalPages > 1): ?>
                     <div class="pagination">
+                        <?php
+                        // Build query string for pagination links
+                        $queryParams = $_GET;
+                        unset($queryParams['page']);
+                        $queryString = http_build_query($queryParams);
+                        $queryString = $queryString ? "&$queryString" : "";
+                        ?>
+                        
                         <!-- Previous -->
                         <?php if ($currentPage > 1): ?>
-                            <a href="?page=<?php echo $currentPage - 1; ?>">« Prev</a>
+                            <a href="?page=<?php echo $currentPage - 1; ?><?php echo $queryString; ?>">« Prev</a>
                         <?php else: ?>
                             <span class="disabled">« Prev</span>
                         <?php endif; ?>
@@ -365,7 +576,7 @@ $records = $stmt->fetchAll();
                         $endPage = min($totalPages, $currentPage + 2);
                         
                         if ($startPage > 1): ?>
-                            <a href="?page=1">1</a>
+                            <a href="?page=1<?php echo $queryString; ?>">1</a>
                             <?php if ($startPage > 2): ?>
                                 <span>...</span>
                             <?php endif; ?>
@@ -375,7 +586,7 @@ $records = $stmt->fetchAll();
                             <?php if ($i == $currentPage): ?>
                                 <span class="active"><?php echo $i; ?></span>
                             <?php else: ?>
-                                <a href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                                <a href="?page=<?php echo $i; ?><?php echo $queryString; ?>"><?php echo $i; ?></a>
                             <?php endif; ?>
                         <?php endfor;
                         
@@ -383,12 +594,12 @@ $records = $stmt->fetchAll();
                             <?php if ($endPage < $totalPages - 1): ?>
                                 <span>...</span>
                             <?php endif; ?>
-                            <a href="?page=<?php echo $totalPages; ?>"><?php echo $totalPages; ?></a>
+                            <a href="?page=<?php echo $totalPages; ?><?php echo $queryString; ?>"><?php echo $totalPages; ?></a>
                         <?php endif; ?>
                         
                         <!-- Next -->
                         <?php if ($currentPage < $totalPages): ?>
-                            <a href="?page=<?php echo $currentPage + 1; ?>">Next »</a>
+                            <a href="?page=<?php echo $currentPage + 1; ?><?php echo $queryString; ?>">Next »</a>
                         <?php else: ?>
                             <span class="disabled">Next »</span>
                         <?php endif; ?>
@@ -406,7 +617,7 @@ $records = $stmt->fetchAll();
                     <ul style="margin-left: 20px; margin-top: 5px;">
                         <li><strong>Windows (PowerShell):</strong> <code>Get-FileHash -Algorithm SHA256 report.pdf</code></li>
                         <li><strong>macOS/Linux:</strong> <code>shasum -a 256 report.pdf</code></li>
-                        <li><strong>Online:</strong> <a href="https://emn178.github.io/online-tools/sha256_checksum.html">Tap here to use an online SHA-256 hash generator</a></li>
+                        <li><strong>Online:</strong> <a href="https://emn178.github.io/online-tools/sha256_checksum.html">Tap here for an online SHA-256 hash generator</a></li>
                     </ul>
                 </li>
                 <li>Compare the generated hash with the hash stored in this audit log</li>
@@ -420,7 +631,7 @@ $records = $stmt->fetchAll();
     <script>
         function copyHash(id) {
             const hashElement = document.getElementById('hash-' + id);
-            const hashText = hashElement.textContent.trim(); 
+            const hashText = hashElement.textContent.trim();
             
             navigator.clipboard.writeText(hashText).then(() => {
                 // Change button text temporarily

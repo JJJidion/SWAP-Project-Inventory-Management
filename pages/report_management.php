@@ -180,7 +180,7 @@ class ReportQueue {
                     file_put_contents($outputFile, $result['pdf']);
                     
                     // Log to report_audit_log table for integrity verification
-                    $this->logReportToDatabase($pdo, $result['hash']);
+                    $this->logReportToDatabase($pdo, $result['hash'], $item['params']['report_type'], $item['username']);
                     
                     $this->updateStatus($item['id'], [
                         'status' => 'completed',
@@ -212,11 +212,21 @@ class ReportQueue {
     
     /**
      * Log report hash to database for audit/integrity verification
+     * 
+     * @param PDO $pdo - Database connection
+     * @param string $hash - SHA256 hash of the generated PDF
+     * @param string $reportType - Type of report (parts_usage, finance, inventory)
+     * @param string $generatedBy - Username of user who generated the report
      */
-    private function logReportToDatabase(PDO $pdo, string $hash): void {
-        $sql = "INSERT INTO report_audit_log (SHA256_ID, claim_submission_time) VALUES (:hash, NOW())";
+    private function logReportToDatabase(PDO $pdo, string $hash, string $reportType, string $generatedBy): void {
+        $sql = "INSERT INTO report_audit_log (SHA256_ID, report_type, generated_by, claim_submission_time) 
+                VALUES (:hash, :report_type, :generated_by, NOW())";
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([':hash' => $hash]);
+        $stmt->execute([
+            ':hash' => $hash,
+            ':report_type' => $reportType,
+            ':generated_by' => $generatedBy
+        ]);
     }
     
     /**
