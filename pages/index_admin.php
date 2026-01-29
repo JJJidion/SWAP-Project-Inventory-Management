@@ -8,11 +8,14 @@
 session_start();
 require_once __DIR__ . '/../config/config.php';
 
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
 if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "Admin") {
     header("Location: login.php");
     exit;
 }
-$pageTitle = 'Admin Dashboard';
+$pageTitle = 'Inventory Manager Dashboard';
 
 ?>
 
@@ -28,7 +31,7 @@ $pageTitle = 'Admin Dashboard';
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
     
-    <div class="container mt-5"> <h1>Admin Dashboard</h1>
+    <div class="container mt-5"> <h1>Inventory Manager Dashboard</h1>
         <h3>Welcome, <?php echo htmlspecialchars($_SESSION["first_name"]); ?>!</h3>
         <br>
         

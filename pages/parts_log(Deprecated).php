@@ -6,6 +6,9 @@
 session_start();
 require_once __DIR__ . '/../config/config.php';
 
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
 $pageTitle = 'Parts Log';
 
 if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "Admin") {

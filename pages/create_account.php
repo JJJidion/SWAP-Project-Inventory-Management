@@ -2,102 +2,137 @@
 /**
  * Account Creation Page
  *
- * Page allowing inventory managers to create accounts.
+ * Allows Administrators to create new user accounts.
+ * Includes validation for password complexity, role security, and duplicate detection.
  */
-session_start();
-require_once __DIR__ . '/../config/config.php';
-$pageTitle = 'Create Account';
 
-// Check if user is logged in and has permission
+session_start();
+
+// 1. Configuration & Imports
+require_once __DIR__ . '/../config/config.php';
+
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
+$pageTitle = 'Create Account';
+$error = '';
+$success = false;
+
+// 2. Security Check (Role-Based Access Control)
+// Ensure only Admins can access this page.
 if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "Admin") {
     header("Location: login.php");
     exit;
 }
 
-$error = '';
-$success = false;
-
+// 3. Handle Form Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $isValid = true;
-    $firstName = $_POST['first_name'];
-    $lastName = $_POST['last_name'];
-    $username = $_POST['username'];
-    $email = $_POST['email'];
-    $password = $_POST['password'];
-    $role = $_POST['role'];
-    $phoneNumber = $_POST['phone_number'];
     
-    // Basic Empty Check
-    if (empty($_POST['first_name']) ||
-        empty($_POST['last_name']) ||
-        empty($_POST['username']) ||
-        empty($_POST['email']) ||
-        empty($_POST['password']) ||
-        empty($_POST['confirm_password']) ||
-        empty($_POST['role']) ||
-        empty($_POST['phone_number'])) {
+    // A. Sanitize Input
+    // Remove whitespace from beginning/end of strings
+    $firstName   = trim($_POST['first_name'] ?? '');
+    $lastName    = trim($_POST['last_name'] ?? '');
+    $username    = trim($_POST['username'] ?? '');
+    $email       = trim($_POST['email'] ?? '');
+    $password    = $_POST['password'] ?? '';
+    $confirmPass = $_POST['confirm_password'] ?? '';
+    $role        = $_POST['role'] ?? '';
+    $phoneNumber = trim($_POST['phone_number'] ?? '');
+    
+    $isValid = true;
+
+    // B. Validation: Empty Fields
+    if (empty($firstName) || empty($lastName) || empty($username) || 
+        empty($email) || empty($password) || empty($role) || empty($phoneNumber)) {
         
-        $error = "Error: No fields should be empty";
+        $error = "Error: All fields are required.";
         $isValid = false;
     }
 
     if ($isValid) {
-        // Validate Email Format
+        // Validation: Email Format
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = "Error: Invalid email format.";
             $isValid = false;
         }
 
-        // Validate Role (Security against Inspect Element hacks)
+        // Validation: Role (Security Allowlist)
+        // Prevents users from injecting invalid roles via "Inspect Element"
         $allowedRoles = ['Admin', 'User'];
         if (!in_array($role, $allowedRoles)) {
             $error = "Error: Invalid role selected.";
             $isValid = false;
         }
 
-        // Validate Phone (Exactly 8 Digits)
+        // Validation: Phone Number (Strict Regex)
         if (!preg_match("/^[0-9]{8}$/", $phoneNumber)) {
             $error = "Error: Phone number must be exactly 8 digits.";
             $isValid = false;
         }
-    }
 
-    // Password Match Check
-    if ($isValid && $_POST['password'] !== $_POST['confirm_password']) {
-        $error = "Error: Passwords do not match";
-        $isValid = false;
-    }
-
-    // Password Complexity Check (Server-Side Security)
-    // Rules: Min 10 chars, 1 Uppercase, 1 Lowercase, 1 Number, 1 Special Char
-    if ($isValid) {
-        $pwd = $_POST['password'];
-        if (strlen($pwd) < 10) {
-            $error = "Error: Password must be at least 10 characters long.";
-            $isValid = false;
-        } elseif (!preg_match("/[A-Z]/", $pwd) || 
-                  !preg_match("/[a-z]/", $pwd) || 
-                  !preg_match("/[0-9]/", $pwd) || 
-                  !preg_match("/[\W_]/", $pwd)) { // \W matches non-word chars (symbols), _ matches underscore
-            
-            $error = "Error: Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.";
+        // Validation: Password Match
+        if ($password !== $confirmPass) {
+            $error = "Error: Passwords do not match.";
             $isValid = false;
         }
     }
 
+    // C. Validation: Password Complexity (Server-Side)
+    // We enforce this on the server in case JS is disabled or bypassed.
     if ($isValid) {
+        if (strlen($password) < 10) {
+            $error = "Error: Password must be at least 10 characters long.";
+            $isValid = false;
+        } elseif (!preg_match("/[A-Z]/", $password) || 
+                  !preg_match("/[a-z]/", $password) || 
+                  !preg_match("/[0-9]/", $password) || 
+                  !preg_match("/[\W_]/", $password)) {
+            
+            $error = "Error: Password must contain uppercase, lowercase, number, and special char.";
+            $isValid = false;
+        }
+    }
 
-        $passwordHash = password_hash($password, PASSWORD_BCRYPT);
+    // D. Database Operations
+    if ($isValid) {
+        
+        // Step 1: Check for Duplicates
+        // It is best practice to check if the user exists before trying to insert.
+        $checkStmt = $conn->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
+        $checkStmt->bind_param("ss", $username, $email);
+        $checkStmt->execute();
+        $checkStmt->store_result();
 
-        // Ideally, check if username/email already exists before inserting to prevent SQL errors
-        $query = $conn->prepare("INSERT INTO `users` (`email`, `username`, `password_hash`, `role`, `first_name`, `last_name`, `phone_number`) VALUES (?,?,?,?,?,?,?)");
-        $query->bind_param('sssssss', $email, $username, $passwordHash, $role, $firstName, $lastName, $phoneNumber);
+        if ($checkStmt->num_rows > 0) {
+            $error = "Error: Username or Email already exists.";
+            $isValid = false;
+        }
+        $checkStmt->close();
 
-        if ($query->execute()){
-            echo "<script>alert('Account successfully created!'); window.location.href='account_management.php';</script>";
-            exit;
-        } else {
-            $error = "Error creating account: " . $conn->error;
+        // Step 2: Insert New User
+        if ($isValid) {
+            // Hash the password using BCRYPT
+            $passwordHash = password_hash($password, PASSWORD_BCRYPT);
+
+            $insertStmt = $conn->prepare("INSERT INTO users (email, username, password_hash, role, first_name, last_name, phone_number, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())");
+            
+            if ($insertStmt) {
+                $insertStmt->bind_param('sssssss', $email, $username, $passwordHash, $role, $firstName, $lastName, $phoneNumber);
+
+                if ($insertStmt->execute()) {
+                    // Success: Redirect
+                    echo "<script>alert('Account successfully created!'); window.location.href='account_management.php';</script>";
+                    exit;
+                } else {
+                    // Log error internally
+                    error_log("Database Insert Error: " . $insertStmt->error);
+                    $error = "Error creating account. Please try again.";
+                }
+                $insertStmt->close();
+            } else {
+                error_log("Database Prepare Error: " . $conn->error);
+                $error = "Internal system error.";
+            }
         }
     }
 }
@@ -110,15 +145,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($pageTitle); ?></title>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/style.css">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/validator/13.11.0/validator.min.js"></script>
 </head>
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
+    
     <div class="container">
         <h1><?php echo htmlspecialchars($pageTitle); ?></h1>
 
-        <?php if ($error): ?>
+        <?php if (!empty($error)): ?>
             <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
 
@@ -126,22 +161,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="form-group">
                 <label for="first_name">First Name:</label>
-                <input type="text" id="first_name" name="first_name" required value="<?php echo isset($_POST['first_name']) ? htmlspecialchars($_POST['first_name']) : ''; ?>">
+                <input type="text" id="first_name" name="first_name" required 
+                       value="<?php echo isset($_POST['first_name']) ? htmlspecialchars($_POST['first_name']) : ''; ?>">
             </div>
 
             <div class="form-group">
                 <label for="last_name">Last Name:</label>
-                <input type="text" id="last_name" name="last_name" required value="<?php echo isset($_POST['last_name']) ? htmlspecialchars($_POST['last_name']) : ''; ?>">
+                <input type="text" id="last_name" name="last_name" required 
+                       value="<?php echo isset($_POST['last_name']) ? htmlspecialchars($_POST['last_name']) : ''; ?>">
             </div>
 
             <div class="form-group">
                 <label for="username">Username:</label>
-                <input type="text" id="username" name="username" required value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
+                <input type="text" id="username" name="username" required 
+                       value="<?php echo isset($_POST['username']) ? htmlspecialchars($_POST['username']) : ''; ?>">
             </div>
 
             <div class="form-group">
                 <label for="email">Email:</label>
-                <input type="email" id="email" name="email" required value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
+                <input type="email" id="email" name="email" required 
+                       value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
             </div>
 
             <div class="form-group">
@@ -159,7 +198,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="form-group">
                 <label for="phone_number">Phone Number:</label>
-                <input type="text" id="phone_number" name="phone_number" required value="<?php echo isset($_POST['phone_number']) ? htmlspecialchars($_POST['phone_number']) : ''; ?>">
+                <input type="text" id="phone_number" name="phone_number" required 
+                       value="<?php echo isset($_POST['phone_number']) ? htmlspecialchars($_POST['phone_number']) : ''; ?>">
             </div>
 
             <div class="form-group">
@@ -171,8 +211,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </select>
             </div>
 
-            <button type="submit" class="btn btn-primary">Create Account</button>
-            <a href="<?php echo BASE_URL; ?>/pages/account_management.php" class="btn btn-secondary">Cancel</a>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Create Account</button>
+                <a href="<?php echo BASE_URL; ?>/pages/account_management.php" class="btn btn-secondary">Cancel</a>
+            </div>
         </form>
     </div>
 

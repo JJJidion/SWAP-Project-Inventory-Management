@@ -2,6 +2,9 @@
 session_start();
 require_once __DIR__ . '/../config/config.php';
 
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
 // ---------------------------------------------------------
 // 1. SECURITY: Page Access Control
 // ---------------------------------------------------------

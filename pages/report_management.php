@@ -30,6 +30,9 @@ session_start();
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../lib/dompdf/autoload.inc.php';
 
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
 use Dompdf\Dompdf;
 use Dompdf\Options;
 

@@ -2,19 +2,30 @@
 /**
  * Edit Account Page
  *
- * Page allowing inventory managers to edit user accounts.
+ * This page allows Inventory Managers (Admins) to modify existing user accounts.
+ * It handles data fetching, input validation, and database updates.
  */
+
 session_start();
+
+// 1. Configuration & Imports
 require_once __DIR__ . '/../config/config.php';
+
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
 
 $pageTitle = 'Edit Account';
 
-// Security Check
+// 2. Security & Authentication Check
+// Ensure the user is logged in and has the 'Admin' role.
+// If not, redirect them to the login page to prevent unauthorized access.
 if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "Admin") {
     header("Location: login.php");
     exit;
 }
 
+// 3. Input Validation (GET Request)
+// Verify that a User ID has been passed in the URL.
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     die("Error: No user ID specified.");
 }
@@ -23,9 +34,10 @@ $userId = $_GET['id'];
 $error = '';
 $message = '';
 
-// HANDLE FORM SUBMISSION (UPDATE)
+// 4. Handle Form Submission (POST Request)
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
+    // Retrieve form data
     $username = $_POST['username'];
     $email = $_POST['email'];
     $firstName = $_POST['first_name'];
@@ -34,7 +46,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $phoneNumber = $_POST['phone_number'];
     $isValid = true;
 
-    // Validate Basic Fields
+    // A. Required Fields Check
+    // Loop through all required fields to ensure none are empty.
     $requiredFields = ['first_name', 'last_name', 'username', 'email', 'role', 'phone_number'];
     foreach ($requiredFields as $field) {
         if (empty($_POST[$field])) {
@@ -44,7 +57,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    // Handle Password Logic (Only if user typed something)
+    // B. Password Logic
+    // Check if the user intends to change the password (field is not empty).
     $password = $_POST['password'];
     $confirmPassword = $_POST['confirm_password'];
     $updatePassword = false;
@@ -52,21 +66,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (!empty($password)) {
         $updatePassword = true;
 
+        // Validate Password Matching
         if ($password !== $confirmPassword) {
             $error = "Error: Passwords do not match";
             $isValid = false;
-        } elseif (strlen($password) < 10) {
+        } 
+        // Validate Password Length
+        elseif (strlen($password) < 10) {
             $error = "Error: Password must be at least 10 characters long.";
             $isValid = false;
-        } elseif (!preg_match("/[A-Z]/", $password) || 
-                  !preg_match("/[a-z]/", $password) || 
-                  !preg_match("/[0-9]/", $password) || 
-                  !preg_match("/[\W_]/", $password)) {
+        } 
+        // Validate Password Complexity (Regex)
+        // Must contain Upper, Lower, Number, and Special Character.
+        elseif (!preg_match("/[A-Z]/", $password) || 
+                !preg_match("/[a-z]/", $password) || 
+                !preg_match("/[0-9]/", $password) || 
+                !preg_match("/[\W_]/", $password)) {
             $error = "Error: Password must contain uppercase, lowercase, number, and special char.";
             $isValid = false;
         }
     }
 
+    // C. Data Format Validation
     if ($isValid) {
         // Validate Email Format
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -74,38 +95,43 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $isValid = false;
         }
 
-        // Validate Role (Security against Inspect Element hacks)
+        // Validate Role against an Allowlist
+        // Prevents users from injecting invalid roles via browser tools.
         $allowedRoles = ['Admin', 'User'];
         if (!in_array($role, $allowedRoles)) {
             $error = "Error: Invalid role selected.";
             $isValid = false;
         }
 
-        // Validate Phone (Exactly 8 Digits)
+        // Validate Phone Number (Strict 8-digit requirement)
         if (!preg_match("/^[0-9]{8}$/", $phoneNumber)) {
             $error = "Error: Phone number must be exactly 8 digits.";
             $isValid = false;
         }
     }
 
-    // Execute Update
+    // D. Database Execution
     if ($isValid) {
 
         if ($updatePassword) {
-            // Update WITH password
+            // Path 1: Update user details INCLUDING the new password
+            // We hash the password using Bcrypt before storing it.
             $passwordHash = password_hash($password, PASSWORD_BCRYPT);
             $sql = "UPDATE users SET username = ?, email = ?, password_hash = ?, first_name = ?, last_name = ?, role = ?, phone_number = ?, updated_at = NOW() WHERE id = ?";
+            
             if ($stmt = $conn->prepare($sql)) {
                 $stmt->bind_param("sssssssi", $username, $email, $passwordHash, $firstName, $lastName, $role, $phoneNumber, $userId);
             }
         } else {
-            // Update WITHOUT password
+            // Path 2: Update user details WITHOUT changing the password
             $sql = "UPDATE users SET username = ?, email = ?, first_name = ?, last_name = ?, role = ?, phone_number = ?, updated_at = NOW() WHERE id = ?";
+            
             if ($stmt = $conn->prepare($sql)) {
                 $stmt->bind_param("ssssssi", $username, $email, $firstName, $lastName, $role, $phoneNumber, $userId);
             }
         }
 
+        // Execute the prepared statement
         if (isset($stmt) && $stmt->execute()) {
             echo "<script>alert('Account updated successfully!'); window.location.href='account_management.php';</script>";
             exit;
@@ -116,7 +142,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// FETCH EXISTING DATA
+// 5. Fetch Existing User Data (GET Request)
+// Pre-fill the HTML form with the current data from the database.
 $sql = "SELECT id, username, email, first_name, last_name, role, phone_number FROM users WHERE id = ?";
 $userData = null;
 
@@ -225,6 +252,8 @@ if ($stmt = $conn->prepare($sql)) {
 
 
     <script>
+        // Client-Side Validation
+        // This provides immediate feedback to the user before the form is submitted to the server.
         document.getElementById('editAccountForm').addEventListener('submit', function(e) {
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
@@ -233,14 +262,16 @@ if ($stmt = $conn->prepare($sql)) {
             if (password.length > 0) {
                 const rules = { minLength: 10, minLowercase: 1, minUppercase: 1, minNumbers: 1, minSymbols: 1 };
 
+                // Check strength requirements
                 if (!validator.isStrongPassword(password, rules)) {
-                    e.preventDefault();
+                    e.preventDefault(); // Stop form submission
                     alert('New password is too weak!\nIt must be at least 10 characters long and contain:\n- Uppercase letter\n- Lowercase letter\n- Number\n- Special character');
                     return;
                 }
 
+                // Check matching fields
                 if (password !== confirmPassword) {
-                    e.preventDefault();
+                    e.preventDefault(); // Stop form submission
                     alert('New passwords do not match!');
                     return;
                 }
