@@ -38,7 +38,7 @@ function manageInventory($conn, $action, $data, $userId) {
     // Validation
     if ($action === 'add' || $action === 'update') {
         if ($data['quantity'] < 0) throw new Exception("Stock cannot be negative.");
-        if ($data['price'] < 0) throw new Exception("Price cannot be negative."); // New Check
+        if ($data['cost_per_part'] < 0) throw new Exception("Price cannot be negative."); // New Check
         if (empty($data['part_name'])) throw new Exception("Part Name is required.");
     }
 
@@ -48,18 +48,18 @@ function manageInventory($conn, $action, $data, $userId) {
 
         if ($action === 'add') {
             // UPDATED: Added price column
-            $stmt = $conn->prepare("INSERT INTO inventory (part_name, category, supplier, stock_level, price) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("sssid", $data['part_name'], $data['category'], $data['supplier'], $data['quantity'], $data['price']);
+            $stmt = $conn->prepare("INSERT INTO inventory (part_name, category, supplier, stock_level, cost_per_part) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("sssid", $data['part_name'], $data['category'], $data['supplier'], $data['quantity'], $data['cost_per_part']);
             $stmt->execute();
             $newId = $conn->insert_id;
-            $logDetails = "Added Item #$newId: '{$data['part_name']}' (Value: \${$data['price']})";
+            $logDetails = "Added Item #$newId: '{$data['part_name']}' (Value: \${$data['cost_per_part']})";
 
         } elseif ($action === 'update') {
             // UPDATED: Added price column
-            $stmt = $conn->prepare("UPDATE inventory SET stock_level = ?, part_name = ?, category = ?, supplier = ?, price = ? WHERE id = ?");
-            $stmt->bind_param("isssdi", $data['quantity'], $data['part_name'], $data['category'], $data['supplier'], $data['price'], $data['id']);
+            $stmt = $conn->prepare("UPDATE inventory SET stock_level = ?, part_name = ?, category = ?, supplier = ?, cost_per_part = ? WHERE id = ?");
+            $stmt->bind_param("isssdi", $data['quantity'], $data['part_name'], $data['category'], $data['supplier'], $data['cost_per_part'], $data['id']);
             $stmt->execute();
-            $logDetails = "Updated Item #{$data['id']}: Stock {$data['quantity']}, Value \${$data['price']}";
+            $logDetails = "Updated Item #{$data['id']}: Stock {$data['quantity']}, Value \${$data['cost_per_part']}";
 
         } elseif ($action === 'delete') {
             $stmtGet = $conn->prepare("SELECT part_name FROM inventory WHERE id = ?");
