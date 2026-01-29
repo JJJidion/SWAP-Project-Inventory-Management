@@ -157,7 +157,7 @@ $pageTitle = 'AI Search';
                             <th>Part Name</th>
                             <th>Category</th>
                             <th>Supplier</th>
-                            <th>Stock</th>
+                            <th>Price ($)</th>  <th>Stock</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -170,7 +170,7 @@ $pageTitle = 'AI Search';
                             <td>${item.part_name}</td>
                             <td>${item.category}</td>
                             <td>${item.supplier}</td>
-                            <td>${item.stock_level}</td>
+                            <td>$${item.cost_per_part}</td> <td>${item.stock_level}</td>
                             <td><span class="${statusClass}">${item.status}</span></td>
                         </tr>`;
                 });

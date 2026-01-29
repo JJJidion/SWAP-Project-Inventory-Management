@@ -41,7 +41,7 @@ class TrustBoundary:
 
     # Business Logic Restrictions (Role-Specific)
     RESTRICTED_TERMS = {
-        'employee': ['obsolete', 'hidden', 'deleted', 'margin', 'cost', 'salary', 'profit', 'revenue'],
+        'employee': ['obsolete', 'hidden', 'deleted', 'margin', 'salary', 'profit', 'revenue'],
         'admin': [] # Admins have no keyword restrictions
     }
 
@@ -222,6 +222,7 @@ def ask_ai():
         - part_name (VARCHAR)
         - category (VARCHAR). Valid values found in DB: [{categories_str}]
         - supplier (VARCHAR). Valid values: [{sup_str}]  
+        - cost_per_part (DECIMAL). Usage: Cost/Price of the item.
         - stock_level (INT)
         - status (ENUM): 'active', 'obsolete'
         - is_deleted (TINYINT)
@@ -229,9 +230,10 @@ def ask_ai():
         Task: Write a SQL query for: "{clean_query}"
         
         Rules: 
-        1. Return ONLY SQL. No Markdown. No Semicolons.
+        1. Output **ONLY** the raw SQL code. No Markdown. No Semicolons.
         2. ALWAYS use 'SELECT *' (Select All) so the frontend has all data columns.
-        3. If the user searches for a category/supplier not in the list, match the closest valid value.
+        3. Do NOT write "Here is the query". Start the response immediately with "SELECT".
+        4. If the user searches for a category/supplier not in the list, match the closest valid value.
         """
         
         response = model.generate_content(prompt)
