@@ -64,7 +64,7 @@ if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "Admin") {
                     <th>Phone Number</th>
                     <th>Created At</th>
                     <th>Updated At</th>
-                </tr>
+                    <th>Actions</th> </tr>
             </thead>
 
             <tbody>
@@ -72,7 +72,20 @@ if (!isset($_SESSION["username"]) || $_SESSION["role"] !== "Admin") {
                 <tr>
                     <td><?php echo htmlspecialchars($acc["first_name"] . " " . $acc["last_name"]); ?></td>
                     <td><?php echo htmlspecialchars($acc["username"]); ?></td>
-                    <td><?php echo htmlspecialchars($acc["role"]); ?></td>
+                    
+                    <td>
+                        <?php 
+                        // check the role and change display text
+                        if ($acc["role"] === 'User') {
+                            echo 'Warehouse Staff';
+                        } elseif ($acc["role"] === 'Admin') {
+                            echo 'Inventory Manager';
+                        } else {
+                            // If it's something else, just show it as is
+                            echo htmlspecialchars($acc["role"]);
+                        }
+                        ?>
+                    </td>
                     <td><?php echo htmlspecialchars($acc["email"]); ?></td>
                     <td><?php echo htmlspecialchars($acc["phone_number"]); ?></td>
                     <td><?php echo htmlspecialchars($acc["created_at"]); ?></td>

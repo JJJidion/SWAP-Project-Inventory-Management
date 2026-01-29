@@ -31,7 +31,7 @@ CREATE TABLE `users` (
   `email` varchar(255) NOT NULL,
   `username` varchar(100) NOT NULL,
   `password_hash` varchar(255) NOT NULL,
-  `role` enum('Admin','User','Inventory Manager') NOT NULL DEFAULT 'User',
+  `role` enum('Admin', 'User') NOT NULL,
   `first_name` varchar(100) NOT NULL,
   `last_name` varchar(100) NOT NULL,
   `phone_number` varchar(10) NOT NULL,
@@ -44,10 +44,9 @@ CREATE TABLE `users` (
 
 -- Dump data for users
 INSERT INTO `users` (`id`, `email`, `username`, `password_hash`, `role`, `first_name`, `last_name`, `phone_number`, `created_at`, `updated_at`) VALUES
-(1, 'admin@gmail.com', 'Admin', '$2a$10$Di7knnd.pHrgu75uJ863D.vZJERMQ0Ic71c9E/CyU1XUn3ZC.ampC', 'Admin', 'John', 'Doe', '67676767', '2026-01-08 14:25:00', '2026-01-10 12:22:34'),
-(2, 'user@gmail.com', 'User', '$2y$10$FUAlQQdWuKOgh0QQKpBoL.0QqOTdT3i6Yxhez4Y2/tcxzPG/5iRCu', 'User', 'Jimmy', 'Lee', '12345678', '2026-01-11 08:31:30', '2026-01-12 14:31:55'),
-(3, 'manager@gmail.com', 'Manager', '$2y$10$FUAlQQdWuKOgh0QQKpBoL.0QqOTdT3i6Yxhez4Y2/tcxzPG/5iRCu', 'Inventory Manager', 'Test', 'Manager', '99999999', '2026-01-14 09:00:00', '2026-01-14 09:00:00'),
-(4, 'billykwang@gmail.com', 'billyKwang', '$2y$10$pFGUognB8Hn.BymhXw/BrOo5XhKdlXcz2ANK4S6vdP/4RzdLVH3Se', 'User', 'Billy', 'Kwang', '66667777', '2026-01-21 23:05:36', '2026-01-21 23:05:36');
+(1, 'alice@gmail.com', 'Alice_123', '$2y$10$1Lep6tvYv3KX6rfrMYCf/OVkHpAAuBKTQXoBCIRj0s/FbkghQ2htW', 'Admin', 'Alice', 'Tan', '67676767', '2026-01-08 14:25:00', '2026-01-10 12:22:34'),
+(2, 'bob@gmail.com', 'Bob_456', '$2y$10$t220d8rfWa7RSgU1I2UcNOGCZ..eMrYdG0pBsfCvUs/S38w3s5vOO', 'Admin', 'Bob', 'Buns', '77676767', '2026-01-08 14:25:00', '2026-01-10 12:22:34'),
+(3, 'billykwang@gmail.com', 'billyKwang', '$2y$10$pFGUognB8Hn.BymhXw/BrOo5XhKdlXcz2ANK4S6vdP/4RzdLVH3Se', 'User', 'Billy', 'Kwang', '66667777', '2026-01-21 23:05:36', '2026-01-21 23:05:36');
 
 -- --------------------------------------------------------
 -- 4. Table: audit_logs (MOVED UP so it exists before we insert!)
