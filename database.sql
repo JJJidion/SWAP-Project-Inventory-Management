@@ -111,7 +111,7 @@ INSERT INTO `audit_logs` (`user_id`, `action`, `timestamp`) VALUES
 (1, 'Database reset: Loaded Manufacturing Inventory', NOW());
 
 ALTER TABLE `inventory` 
-ADD COLUMN `price` DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER `stock_level`;
+ADD COLUMN `cost_per_part` DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER `stock_level`;
 
 COMMIT;
 
