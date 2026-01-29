@@ -77,7 +77,7 @@ VALUES (
 );
 
 -- --------------------------------------------------------
--- 5. Table: parts_log (Ashton Neo) -- Deprecated //Moved here to ensure the audit tables exist before inventory
+-- 5. Table: parts_log (Ashton Neo) //Moved here to ensure the audit tables exist before inventory
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `parts_log`;
 CREATE TABLE `parts_log` (
@@ -92,7 +92,17 @@ CREATE TABLE `parts_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
--- 6. Table: inventory (Your Work)
+-- 6. Table: report_audit_log (Ashton Neo)
+-- --------------------------------------------------------
+DROP TABLE IF EXISTS `report_audit_log`;
+CREATE TABLE `report_audit_log` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `SHA256_ID` VARCHAR(255),
+    `claim_submission_time` DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+-- 7. Table: inventory
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `inventory`;
 CREATE TABLE `inventory` (

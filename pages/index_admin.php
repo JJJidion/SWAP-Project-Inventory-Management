@@ -50,7 +50,17 @@ $pageTitle = 'Inventory Manager Dashboard';
         <button type="button" class="btn btn-success ms-2" onclick="window.location.href='report_management.php';">
         Report Management
         </button>
+        <hr class="my-4">
 
+        <h4>🔐 Security & Monitoring</h4>
+
+        <?php if ($_SESSION["role"] === "Admin"): ?>
+            <button type="button"
+                    class="btn btn-dark mt-2"
+                    onclick="window.location.href='<?php echo BASE_URL; ?>/audit/audit_dashboard.php';">
+                🔐 Authentication Logs
+            </button>
+        <?php endif; ?>
     </div>
 
 </body>

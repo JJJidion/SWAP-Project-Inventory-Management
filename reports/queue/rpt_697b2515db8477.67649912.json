@@ -1,0 +1,20 @@
+{
+    "id": "rpt_697b2515db8477.67649912",
+    "params": {
+        "report_type": "parts_usage",
+        "start_date": "2025-12-31",
+        "end_date": "2026-01-29",
+        "filters": {
+            "category": "Consumables",
+            "supplier": "II-VI Infrared",
+            "project_id": "B2"
+        }
+    },
+    "username": "Alice_123",
+    "status": "completed",
+    "created_at": 1769678101,
+    "completed_at": 1769678102,
+    "output_file": "parts_usage_report_20260129_101502.pdf",
+    "error": null,
+    "hash": "da526cedd96ecc723e00258e2b5021cdc4a8b0fd3d2f03f75a5dadf370e00b56"
+}

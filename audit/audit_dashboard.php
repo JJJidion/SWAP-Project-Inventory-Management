@@ -1,7 +1,8 @@
 <?php
 session_start();
-if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['Admin', 'Inventory Manager'])) {
-    die('Access denied');
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
+    http_response_code(403);
+    exit('Access denied');
 }
 ?>
 <!DOCTYPE html>
@@ -35,6 +36,13 @@ th {
 tr.login { background: #e8f5e9; }
 tr.delete { background: #fdecea; }
 tr.update { background: #fff8e1; }
+
+td:nth-child(3) {
+    white-space: normal;      /* allow wrapping */
+    word-break: break-word;   /* break long text cleanly */
+    min-width: 200px;         /* give role some breathing space */
+    font-weight: 600;
+}
 </style>
 </head>
 
