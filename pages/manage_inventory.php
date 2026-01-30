@@ -65,8 +65,10 @@ require_once '../includes/header.php';
 ?>
 
 <link rel="stylesheet" href="../css/style.css">
+
 <style>
-    .btn-green { background-color: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-green { background-color: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; }
+    .btn-green:hover { background-color: #218838; }
     .btn-blue { background-color: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
     .btn-red { background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
     .btn-warning { background-color: #ffc107; color: black; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
@@ -144,7 +146,7 @@ require_once '../includes/header.php';
     <form method="GET" style="margin-bottom: 10px; display: flex; gap: 5px;">
         <input type="text" name="search" placeholder="Search part name..." value="<?php echo htmlspecialchars($searchTerm); ?>" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
         <button type="submit" class="btn-green">Search</button>
-        <a href="manage_inventory.php?export=true" class="btn-green" style="margin-left: 10px;">Export CSV</a>
+        <a href="export_inventory.php" class="btn-green" style="margin-left: 10px;">Export CSV</a>
     </form>
 
     <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
@@ -204,12 +206,15 @@ function editItem(id, name, qty, cat, supp, price) {
     document.getElementById('inputCategory').value = cat;
     document.getElementById('inputSupplier').value = supp;
     document.getElementById('inputPrice').value = price;
+    
     document.getElementById('formTitle').innerText = '✏️ Edit Item';
     document.getElementById('submitBtn').innerText = 'Update Item';
     document.getElementById('submitBtn').className = 'btn-warning';
     document.getElementById('cancelBtn').style.display = 'inline-block';
+    
     document.getElementById('inventoryForm').classList.add('edit-mode');
 }
+
 function resetForm() {
     document.getElementById('formAction').value = 'add';
     document.getElementById('inputID').value = '';
@@ -217,11 +222,14 @@ function resetForm() {
     document.getElementById('inputQty').value = '';
     document.getElementById('inputSupplier').value = '';
     document.getElementById('inputPrice').value = '';
+    
     document.getElementById('formTitle').innerText = 'Add New Item';
     document.getElementById('submitBtn').innerText = 'Add Item';
     document.getElementById('submitBtn').className = 'btn-green';
     document.getElementById('cancelBtn').style.display = 'none';
+    
     document.getElementById('inventoryForm').classList.remove('edit-mode');
 }
 </script>
+
 <?php require_once '../includes/footer.php'; ?>

@@ -5,6 +5,7 @@ function getInventory($conn, $search = '') {
     $items = [];
     try {
         if (!empty($search)) {
+            // Prepared statements prevent SQL Injection
             $stmt = $conn->prepare("SELECT * FROM inventory WHERE (part_name LIKE ? OR category LIKE ? OR id = ?) AND is_deleted = 0 ORDER BY id ASC");
             $searchTerm = "%$search%";
             $stmt->bind_param("sss", $searchTerm, $searchTerm, $search);
@@ -51,6 +52,7 @@ function manageInventory($conn, $action, $data, $userId, $userRole) {
     }
 
     // 2. SECURITY: Input Cooldown (Anti-Bot)
+    // Prevents spamming (must wait 2 seconds between actions)
     if (isset($_SESSION['last_action_time']) && (time() - $_SESSION['last_action_time'] < 2)) {
         throw new Exception("Please wait a moment before trying again.");
     }
@@ -77,13 +79,13 @@ function manageInventory($conn, $action, $data, $userId, $userRole) {
             $stmt->bind_param("sssid", $data['part_name'], $data['category'], $data['supplier'], $data['quantity'], $data['price']);
             $stmt->execute();
             $newId = $conn->insert_id;
-            $logDetails = "Added Item #$newId: '{$data['part_name']}'";
+            $logDetails = "Added Item #$newId: '{$data['part_name']}' (Value: \${$data['price']})";
 
         } elseif ($action === 'update') {
             $stmt = $conn->prepare("UPDATE inventory SET stock_level = ?, part_name = ?, category = ?, supplier = ?, price = ? WHERE id = ?");
             $stmt->bind_param("isssdi", $data['quantity'], $data['part_name'], $data['category'], $data['supplier'], $data['price'], $data['id']);
             $stmt->execute();
-            $logDetails = "Updated Item #{$data['id']}: Stock {$data['quantity']}";
+            $logDetails = "Updated Item #{$data['id']}: Stock {$data['quantity']}, Value \${$data['price']}";
 
         } elseif ($action === 'delete') {
             $stmtGet = $conn->prepare("SELECT part_name FROM inventory WHERE id = ?");
