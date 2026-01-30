@@ -4,66 +4,73 @@ session_start();
 require_once '../config/config.php';
 require_once '../utils/inventory_logic.php';
 
-// Session timeout
-require_once __DIR__ . '/../utils/session_check.php';
+// --- SECURITY HEADERS (Defends against Clickjacking & XSS) ---
+header("X-Frame-Options: DENY");
+header("X-Content-Type-Options: nosniff");
+header("X-XSS-Protection: 1; mode=block");
 
-// --- SECURITY CHECKS ---
+// --- ROLE CHECK ---
 if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'Inventory Manager' && $_SESSION['role'] !== 'Admin')) {
-    require_once '../includes/header.php';
-    echo "<div class='container'><h3>⛔ Access Denied.</h3></div>";
-    require_once '../includes/footer.php';
+    // If a 'User' tries to access this page, send them to the safe user page.
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'User') {
+        header("Location: user_inventory.php");
+        exit();
+    }
+    header("Location: ../index.php");
     exit();
 }
 
-// --- LOGIC: Handle Form Actions ---
+// --- CSRF TOKEN GENERATION ---
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $message = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 1. VERIFY CSRF TOKEN
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die("Security Error: Invalid CSRF Token. Request blocked.");
+    }
+
     try {
         $action = $_POST['action'];
         $data = [
             'id' => $_POST['part_id'] ?? null,
-            'part_name' => trim($_POST['part_name'] ?? ''),
+            'part_name' => $_POST['part_name'] ?? '',
             'category' => $_POST['category'] ?? 'General',
-            'supplier' => trim($_POST['supplier'] ?? ''),
+            'supplier' => $_POST['supplier'] ?? '',
             'quantity' => $_POST['quantity'] ?? 0,
-            'cost_per_part' => $_POST['cost_per_part'] ?? 0.00 // NEW FIELD
+            'price' => $_POST['price'] ?? 0.00
         ];
         
         $userId = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 1;
-        manageInventory($conn, $action, $data, $userId);
+        $userRole = $_SESSION['role']; // Pass role for security check
+        
+        manageInventory($conn, $action, $data, $userId, $userRole);
         $message = "Action successful!";
     } catch (Exception $e) {
         $message = "Error: " . $e->getMessage();
     }
 }
 
-// --- FETCH DATA ---
+// Fetch Data
 $searchTerm = $_GET['search'] ?? '';
 $inventoryItems = getInventory($conn, $searchTerm);
-
-// --- STATS CALCULATION ---
 $totalItems = count($inventoryItems);
 $lowStockCount = 0;
-foreach ($inventoryItems as $item) {
-    if ($item['stock_level'] < 10) $lowStockCount++;
-}
+foreach ($inventoryItems as $item) { if ($item['stock_level'] < 10) $lowStockCount++; }
 
 $pageTitle = 'Inventory Manager';
 require_once '../includes/header.php'; 
 ?>
 
 <link rel="stylesheet" href="../css/style.css">
-
 <style>
-    .btn-green { background-color: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; text-decoration: none; font-weight: bold; }
-    .btn-green:hover { background-color: #218838; }
-    
+    .btn-green { background-color: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     .btn-blue { background-color: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
     .btn-red { background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
-    
     .btn-warning { background-color: #ffc107; color: black; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     .btn-secondary { background-color: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-left: 5px; }
-
     .edit-mode { border: 2px solid #ffc107 !important; background-color: #fffbf0 !important; }
 </style>
 
@@ -80,11 +87,8 @@ require_once '../includes/header.php';
             <p style="font-size: 24px; font-weight: bold; margin: 0; color: #dc3545;"><?php echo $lowStockCount; ?></p>
         </div>
         <div style="flex: 1; padding: 15px; background: #f4f4f4; border: 1px solid #ddd; border-radius: 5px; border-left: 5px solid #6c757d;">
-            <h3>Stock Change Logs</h3>
-            <p><a href="<?php echo BASE_URL; ?>/audit/stock_logs.php"
-   style="text-decoration: none; color: #333; font-weight: bold;">
-    View Stock Change Logs &rarr;
-</a></p>
+            <h3>Audit Logs</h3>
+            <p><a href="view_audit_logs.php" style="text-decoration: none; color: #333; font-weight: bold;">View Full History &rarr;</a></p>
         </div>
     </div>
 
@@ -97,6 +101,8 @@ require_once '../includes/header.php';
     <hr>
     <h3 id="formTitle">Add New Item</h3>
     <form id="inventoryForm" method="POST" action="" style="background: #f9f9f9; padding: 20px; border: 1px solid #ddd; margin-bottom: 20px; border-radius: 5px;">
+        <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+        
         <input type="hidden" name="action" value="add" id="formAction">
         <input type="hidden" name="part_id" id="inputID">
         
@@ -120,7 +126,8 @@ require_once '../includes/header.php';
                 <input type="text" name="supplier" id="inputSupplier" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="flex: 1;">
-                <label>Value ($):</label><br> <input type="number" step="0.01" name="cost_per_part" id="inputcost_per_part" max="10000" placeholder="0.00" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <label>Value ($):</label><br>
+                <input type="number" step="0.01" name="price" id="inputPrice" placeholder="0.00" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="flex: 1;">
                 <label>Stock:</label><br>
@@ -146,7 +153,8 @@ require_once '../includes/header.php';
             <th style="padding: 10px; border: 1px solid #dee2e6;">Category</th>
             <th style="padding: 10px; border: 1px solid #dee2e6;">Part Name</th>
             <th style="padding: 10px; border: 1px solid #dee2e6;">Supplier</th>
-            <th style="padding: 10px; border: 1px solid #dee2e6;">Value ($)</th> <th style="padding: 10px; border: 1px solid #dee2e6;">Stock</th>
+            <th style="padding: 10px; border: 1px solid #dee2e6;">Value ($)</th>
+            <th style="padding: 10px; border: 1px solid #dee2e6;">Stock</th>
             <th style="padding: 10px; border: 1px solid #dee2e6;">Actions</th>
         </tr>
         <?php if (count($inventoryItems) > 0): ?>
@@ -154,10 +162,10 @@ require_once '../includes/header.php';
             <?php foreach ($inventoryItems as $item): ?>
                 <tr style="border-bottom: 1px solid #eee;">
                     <td><?php echo $rowNumber++; ?></td>
-                    <td><?php echo htmlspecialchars($item['category']); ?></td>
-                    <td><b><?php echo htmlspecialchars($item['part_name']); ?></b></td>
-                    <td><?php echo htmlspecialchars($item['supplier']); ?></td>
-                    <td>$<?php echo number_format($item['cost_per_part'], 2); ?></td> <td>
+                    <td><?php echo $item['category']; ?></td> <td><b><?php echo $item['part_name']; ?></b></td>
+                    <td><?php echo $item['supplier']; ?></td>
+                    <td>$<?php echo number_format($item['price'], 2); ?></td>
+                    <td>
                         <?php echo $item['stock_level']; ?>
                         <?php if($item['stock_level'] < 10) echo " <span style='color:red; font-weight:bold;'>(Low)</span>"; ?>
                     </td>
@@ -168,10 +176,11 @@ require_once '../includes/header.php';
                             '<?php echo $item['stock_level']; ?>',
                             '<?php echo addslashes($item['category']); ?>',
                             '<?php echo addslashes($item['supplier']); ?>',
-                            '<?php echo $item['cost_per_part']; ?>'
+                            '<?php echo $item['price']; ?>'
                         )">Edit</button>
                         
                         <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this item?');">
+                            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                             <input type="hidden" name="action" value="delete">
                             <input type="hidden" name="part_id" value="<?php echo $item['id']; ?>">
                             <button class="btn-red">Delete</button>
@@ -186,40 +195,33 @@ require_once '../includes/header.php';
 </div>
 
 <script>
-function editItem(id, name, qty, cat, supp, cost_per_part) {
+function editItem(id, name, qty, cat, supp, price) {
     document.getElementById('inventoryForm').scrollIntoView({ behavior: 'smooth' });
-
     document.getElementById('formAction').value = 'update';
     document.getElementById('inputID').value = id;
     document.getElementById('inputName').value = name;
     document.getElementById('inputQty').value = qty;
     document.getElementById('inputCategory').value = cat;
     document.getElementById('inputSupplier').value = supp;
-    document.getElementById('inputcost_per_part').value = cost_per_part; // Fill cost_per_part Field
-
+    document.getElementById('inputPrice').value = price;
     document.getElementById('formTitle').innerText = '✏️ Edit Item';
     document.getElementById('submitBtn').innerText = 'Update Item';
     document.getElementById('submitBtn').className = 'btn-warning';
     document.getElementById('cancelBtn').style.display = 'inline-block';
-    
     document.getElementById('inventoryForm').classList.add('edit-mode');
 }
-
 function resetForm() {
     document.getElementById('formAction').value = 'add';
     document.getElementById('inputID').value = '';
     document.getElementById('inputName').value = '';
     document.getElementById('inputQty').value = '';
     document.getElementById('inputSupplier').value = '';
-    document.getElementById('inputcost_per_part').value = ''; // Clear cost_per_part Field
-    
+    document.getElementById('inputPrice').value = '';
     document.getElementById('formTitle').innerText = 'Add New Item';
     document.getElementById('submitBtn').innerText = 'Add Item';
     document.getElementById('submitBtn').className = 'btn-green';
     document.getElementById('cancelBtn').style.display = 'none';
-    
     document.getElementById('inventoryForm').classList.remove('edit-mode');
 }
 </script>
-
 <?php require_once '../includes/footer.php'; ?>
