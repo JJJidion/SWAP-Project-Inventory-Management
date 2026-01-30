@@ -39,13 +39,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'category' => $_POST['category'],
                 'supplier' => trim($_POST['supplier']),
                 'quantity' => $_POST['quantity'],
-                'price' => $_POST['price'] // Required by logic now
+                'price' => $_POST['price'] // Solves "Undefined Key" when saving
             ];
             
             $userId = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0;
-            $userRole = $_SESSION['role']; // Get Role
+            $userRole = $_SESSION['role']; // Get Role for Security
             
-            // FIXED: Now passing 5 arguments including $userRole
+            // FIXED: Now passing 5 arguments (Connection, Action, Data, UserID, Role)
+            // This solves the "Fatal Error: Too few arguments"
             manageInventory($conn, 'update', $data, $userId, $userRole);
             
             $message = "Item updated successfully!";
@@ -173,7 +174,7 @@ require_once '../includes/header.php';
                     <td><?php echo htmlspecialchars($item['category']); ?></td>
                     <td><b><?php echo htmlspecialchars($item['part_name']); ?></b></td>
                     <td><?php echo htmlspecialchars($item['supplier']); ?></td>
-                    <td>$<?php echo number_format($item['price'], 2); ?></td>
+                    <td>$<?php echo isset($item['price']) ? number_format($item['price'], 2) : '0.00'; ?></td>
                     <td>
                         <?php echo $item['stock_level']; ?>
                         <?php if($item['stock_level'] < 10) echo " <span style='color:red; font-weight:bold;'>(Low)</span>"; ?>
@@ -185,7 +186,7 @@ require_once '../includes/header.php';
                             '<?php echo $item['stock_level']; ?>',
                             '<?php echo addslashes($item['category']); ?>',
                             '<?php echo addslashes($item['supplier']); ?>',
-                            '<?php echo $item['price']; ?>'
+                            '<?php echo isset($item['price']) ? $item['price'] : 0; ?>'
                         )">Update</button>
                     </td>
                 </tr>
