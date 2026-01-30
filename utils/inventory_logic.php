@@ -45,9 +45,7 @@ function getRecentLogs($conn, $limit = 50) {
 // NOW ACCEPTS $userRole TO ENFORCE PERMISSIONS
 function manageInventory($conn, $action, $data, $userId, $userRole) {
     
-    // 1. SECURITY: Role-Based Access Control (RBAC)
-    // If a standard 'User' tries to Add or Delete, BLOCK THEM immediately.
-    if ($userRole === 'User' && ($action === 'add' || $action === 'delete')) {
+   if ($userRole === 'User' && ($action === 'add' || $action === 'delete' || $action === 'update')) {
         throw new Exception("Security Alert: You do not have permission to perform this action.");
     }
 
