@@ -498,7 +498,7 @@ $reportTypeNames = [
                 
                 <div class="filter-buttons">
                     <button type="submit" class="btn-filter">Apply</button>
-                    <a href="report_audit_log.php" class="btn-clear">Clear</a>
+                    <a href="report_log.php" class="btn-clear">Clear</a>
                 </div>
             </form>
         </div>
