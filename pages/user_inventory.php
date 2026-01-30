@@ -39,14 +39,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'category' => $_POST['category'],
                 'supplier' => trim($_POST['supplier']),
                 'quantity' => $_POST['quantity'],
-                'price' => $_POST['price'] // Solves "Undefined Key" when saving
+                'price' => $_POST['price'] // Fixes "Undefined key 'price'" error
             ];
             
             $userId = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0;
-            $userRole = $_SESSION['role']; // Get Role for Security
+            $userRole = $_SESSION['role']; // Get the User Role
             
-            // FIXED: Now passing 5 arguments (Connection, Action, Data, UserID, Role)
-            // This solves the "Fatal Error: Too few arguments"
+            // FIXED: Passing 5 arguments now (Connection, Action, Data, UserID, Role)
+            // This fixes the "Fatal error: Too few arguments" crash
             manageInventory($conn, 'update', $data, $userId, $userRole);
             
             $message = "Item updated successfully!";
