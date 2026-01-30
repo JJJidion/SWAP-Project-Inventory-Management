@@ -1,0 +1,19 @@
+{
+    "id": "rpt_697cb0ed9a0d62.71580192",
+    "params": {
+        "report_type": "inventory",
+        "start_date": "2026-01-30",
+        "end_date": "2026-01-30",
+        "filters": {
+            "category": "Tooling",
+            "supplier": "Blaser Swisslube"
+        }
+    },
+    "username": "Alice_123",
+    "status": "completed",
+    "created_at": 1769779437,
+    "completed_at": 1769779437,
+    "output_file": "inventory_report_20260130_142357.pdf",
+    "error": null,
+    "hash": "57224a5805ee7c10c5bb063f6ad99a174ad6c424da72e227871da1243a811768"
+}
