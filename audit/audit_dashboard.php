@@ -4,6 +4,17 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
     http_response_code(403);
     exit('Access denied');
 }
+//LOG AUTH LOG DASHBOARD ACCESS
+audit_log(
+    $conn,
+    $_SESSION['user_id'],
+    $_SESSION['username'],
+    $_SESSION['role'],
+    'VIEW_AUTH_LOGS',
+    'audit',
+    null,
+    'Admin accessed authentication logs dashboard'
+);
 ?>
 <!DOCTYPE html>
 <html lang="en">
