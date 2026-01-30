@@ -53,37 +53,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// --- EXPORT CSV LOGIC ---
-if (isset($_GET['export']) && $_GET['export'] == 'true') {
-    // 1. Fetch current inventory (respecting search if needed, or all items)
-    $exportItems = getInventory($conn, ''); // Fetch all items for export
-
-    // 2. Set Headers to force download
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename=inventory_export_' . date('Y-m-d') . '.csv');
-
-    // 3. Open output stream
-    $output = fopen('php://output', 'w');
-
-    // 4. Add Column Headers
-    fputcsv($output, ['ID', 'Category', 'Part Name', 'Supplier', 'Value ($)', 'Stock Level']);
-
-    // 5. Add Data Rows
-    foreach ($exportItems as $item) {
-        fputcsv($output, [
-            $item['id'],
-            $item['category'],
-            $item['part_name'],
-            $item['supplier'],
-            number_format($item['price'], 2), // Format price
-            $item['stock_level']
-        ]);
-    }
-
-    // 6. Stop script execution so no HTML is added to the file
-    fclose($output);
-    exit();
-}
 // Fetch Data
 $searchTerm = $_GET['search'] ?? '';
 $inventoryItems = getInventory($conn, $searchTerm);
