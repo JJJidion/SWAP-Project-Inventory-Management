@@ -1,7 +1,7 @@
 <?php
 /**
  * ============================================================================
- * AMC REPORT MANAGEMENT PAGE
+ * AMC REPORT MANAGEMENT PAGE -- Only those whose roles are "Admin" can access
  * ============================================================================
  */
 

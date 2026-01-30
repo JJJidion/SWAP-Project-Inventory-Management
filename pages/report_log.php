@@ -1,8 +1,8 @@
 <?php
 /**
- * Report Audit Log Page
- * Displays all generated reports with their SHA256 hashes for integrity verification
- * Only accessible by Admin users
+ * ===================================================================================================
+ * AMC REPORT AUDIT LOG PAGE -- For Logging all Report Creation attempts (Only Role: Admin can access)
+ * ===================================================================================================
  */
 
 session_start();
