@@ -1,195 +1,115 @@
 <?php
 // utils/inventory_logic.php
 
-require_once __DIR__ . '/../audit/audit_logger.php';
-
-/**
- * Fetch inventory items (with optional search)
- */
 function getInventory($conn, $search = '') {
     $items = [];
     try {
         if (!empty($search)) {
-            $stmt = $conn->prepare(
-                "SELECT * FROM inventory
-                 WHERE (part_name LIKE ? OR category LIKE ? OR id = ?)
-                   AND is_deleted = 0
-                 ORDER BY id ASC"
-            );
+            $stmt = $conn->prepare("SELECT * FROM inventory WHERE (part_name LIKE ? OR category LIKE ? OR id = ?) AND is_deleted = 0 ORDER BY id ASC");
             $searchTerm = "%$search%";
             $stmt->bind_param("sss", $searchTerm, $searchTerm, $search);
             $stmt->execute();
             $result = $stmt->get_result();
         } else {
-            $result = $conn->query(
-                "SELECT * FROM inventory
-                 WHERE is_deleted = 0
-                 ORDER BY id ASC"
-            );
+            $result = $conn->query("SELECT * FROM inventory WHERE is_deleted = 0 ORDER BY id ASC");
         }
-
         while ($row = $result->fetch_assoc()) {
+            // OUTPUT ENCODING (Defeats Stored XSS)
+            // We cleanse data right when we pull it out, so it's always safe to display.
+            $row['part_name'] = htmlspecialchars($row['part_name'], ENT_QUOTES, 'UTF-8');
+            $row['category'] = htmlspecialchars($row['category'], ENT_QUOTES, 'UTF-8');
+            $row['supplier'] = htmlspecialchars($row['supplier'], ENT_QUOTES, 'UTF-8');
             $items[] = $row;
         }
         return $items;
-    } catch (Exception $e) {
-        return [];
-    }
+    } catch (Exception $e) { return []; }
 }
 
-/**
- * Fetch recent audit logs (used for dashboard widgets if needed)
- */
 function getRecentLogs($conn, $limit = 50) {
     $logs = [];
-    $sql = "
-        SELECT a.action, a.created_at, u.username
-        FROM audit_logs a
-        LEFT JOIN users u ON a.user_id = u.id
-        ORDER BY a.created_at DESC
-        LIMIT ?
-    ";
-    $stmt = $conn->prepare($sql);
+    $stmt = $conn->prepare("SELECT a.action, a.timestamp, u.username FROM audit_logs a LEFT JOIN users u ON a.user_id = u.id ORDER BY a.timestamp DESC LIMIT ?");
     $stmt->bind_param("i", $limit);
     $stmt->execute();
     $result = $stmt->get_result();
-
     while ($row = $result->fetch_assoc()) {
-        if (empty($row['username'])) {
-            $row['username'] = 'System/Unknown';
-        }
+        if (empty($row['username'])) $row['username'] = 'System/Unknown';
+        // XSS Protection for logs too
+        $row['username'] = htmlspecialchars($row['username'], ENT_QUOTES, 'UTF-8');
+        $row['action'] = htmlspecialchars($row['action'], ENT_QUOTES, 'UTF-8');
         $logs[] = $row;
     }
     return $logs;
 }
 
-/**
- * Central inventory management logic
- * Handles add / update / delete with audit logging
- */
-function manageInventory($conn, $action, $data, $userId) {
+// NOW ACCEPTS $userRole TO ENFORCE PERMISSIONS
+function manageInventory($conn, $action, $data, $userId, $userRole) {
+    
+    // 1. SECURITY: Role-Based Access Control (RBAC)
+    // If a standard 'User' tries to Add or Delete, BLOCK THEM immediately.
+    if ($userRole === 'User' && ($action === 'add' || $action === 'delete')) {
+        throw new Exception("Security Alert: You do not have permission to perform this action.");
+    }
 
-    // --- Validation ---
+    // 2. SECURITY: Input Cooldown (Anti-Bot)
+    if (isset($_SESSION['last_action_time']) && (time() - $_SESSION['last_action_time'] < 2)) {
+        throw new Exception("Please wait a moment before trying again.");
+    }
+    $_SESSION['last_action_time'] = time();
+
+    // 3. SECURITY: Input Validation
     if ($action === 'add' || $action === 'update') {
-        if ($data['quantity'] < 0) {
-            throw new Exception("Stock cannot be negative.");
-        }
-        if ($data['cost_per_part'] < 0) {
-            throw new Exception("Price cannot be negative.");
-        }
-        if (empty($data['part_name'])) {
-            throw new Exception("Part Name is required.");
-        }
+        if ($data['quantity'] < 0) throw new Exception("Stock cannot be negative.");
+        if ($data['price'] < 0) throw new Exception("Price cannot be negative.");
+        if (empty($data['part_name'])) throw new Exception("Part Name is required.");
+        
+        // Input Sanitization (Clean the data before DB)
+        $data['part_name'] = trim($data['part_name']);
+        $data['category'] = trim($data['category']);
+        $data['supplier'] = trim($data['supplier']);
     }
 
     try {
         $conn->begin_transaction();
+        $logDetails = "";
 
-        // --- ADD ITEM ---
         if ($action === 'add') {
-
-            $stmt = $conn->prepare(
-                "INSERT INTO inventory
-                 (part_name, category, supplier, stock_level, cost_per_part)
-                 VALUES (?, ?, ?, ?, ?)"
-            );
-            $stmt->bind_param(
-                "sssid",
-                $data['part_name'],
-                $data['category'],
-                $data['supplier'],
-                $data['quantity'],
-                $data['cost_per_part']
-            );
+            $stmt = $conn->prepare("INSERT INTO inventory (part_name, category, supplier, stock_level, price) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("sssid", $data['part_name'], $data['category'], $data['supplier'], $data['quantity'], $data['price']);
             $stmt->execute();
             $newId = $conn->insert_id;
+            $logDetails = "Added Item #$newId: '{$data['part_name']}'";
 
-            audit_log(
-                $conn,
-                $userId,
-                $_SESSION['username'],
-                $_SESSION['role'],
-                'STOCK_CREATE',
-                'inventory',
-                $newId,
-                "Created item '{$data['part_name']}' (Qty: {$data['quantity']}, Value: \${$data['cost_per_part']})"
-            );
-
-        // --- UPDATE ITEM ---
         } elseif ($action === 'update') {
-
-            // Fetch old stock level for audit clarity
-            $oldStmt = $conn->prepare(
-                "SELECT stock_level FROM inventory WHERE id = ?"
-            );
-            $oldStmt->bind_param("i", $data['id']);
-            $oldStmt->execute();
-            $oldRow = $oldStmt->get_result()->fetch_assoc();
-            $oldQty = $oldRow['stock_level'] ?? 'Unknown';
-            $oldStmt->close();
-
-            $stmt = $conn->prepare(
-                "UPDATE inventory
-                 SET stock_level = ?, part_name = ?, category = ?, supplier = ?, cost_per_part = ?
-                 WHERE id = ?"
-            );
-            $stmt->bind_param(
-                "isssdi",
-                $data['quantity'],
-                $data['part_name'],
-                $data['category'],
-                $data['supplier'],
-                $data['cost_per_part'],
-                $data['id']
-            );
+            $stmt = $conn->prepare("UPDATE inventory SET stock_level = ?, part_name = ?, category = ?, supplier = ?, price = ? WHERE id = ?");
+            $stmt->bind_param("isssdi", $data['quantity'], $data['part_name'], $data['category'], $data['supplier'], $data['price'], $data['id']);
             $stmt->execute();
+            $logDetails = "Updated Item #{$data['id']}: Stock {$data['quantity']}";
 
-            audit_log(
-                $conn,
-                $userId,
-                $_SESSION['username'],
-                $_SESSION['role'],
-                'STOCK_UPDATE',
-                'inventory',
-                $data['id'],
-                "Updated '{$data['part_name']}' stock from {$oldQty} to {$data['quantity']}"
-            );
-
-        // --- DELETE ITEM (SOFT DELETE) ---
         } elseif ($action === 'delete') {
-
-            $stmtGet = $conn->prepare(
-                "SELECT part_name FROM inventory WHERE id = ?"
-            );
+            $stmtGet = $conn->prepare("SELECT part_name FROM inventory WHERE id = ?");
             $stmtGet->bind_param("i", $data['id']);
             $stmtGet->execute();
-            $part = $stmtGet->get_result()->fetch_assoc();
-            $partName = $part ? $part['part_name'] : 'Unknown';
-            $stmtGet->close();
-
-            $stmt = $conn->prepare(
-                "UPDATE inventory SET is_deleted = 1 WHERE id = ?"
-            );
+            $res = $stmtGet->get_result();
+            $part = $res->fetch_assoc();
+            
+            $stmt = $conn->prepare("UPDATE inventory SET is_deleted = 1 WHERE id = ?");
             $stmt->bind_param("i", $data['id']);
             $stmt->execute();
+            $partName = $part ? $part['part_name'] : 'Unknown';
+            $logDetails = "Deleted Item #{$data['id']} ($partName)";
+        }
 
-            audit_log(
-                $conn,
-                $userId,
-                $_SESSION['username'],
-                $_SESSION['role'],
-                'STOCK_DELETE',
-                'inventory',
-                $data['id'],
-                "Deleted item '{$partName}'"
-            );
+        if (!empty($logDetails)) {
+            $logStmt = $conn->prepare("INSERT INTO audit_logs (user_id, action, timestamp) VALUES (?, ?, NOW())");
+            $logStmt->bind_param("is", $userId, $logDetails);
+            $logStmt->execute();
         }
 
         $conn->commit();
         return true;
-
     } catch (Exception $e) {
         $conn->rollback();
-        throw new Exception($e->getMessage());
+        throw $e;
     }
 }
+?>
