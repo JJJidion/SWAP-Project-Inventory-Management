@@ -4,14 +4,13 @@ session_start();
 require_once '../config/config.php';
 require_once '../utils/inventory_logic.php';
 
-// --- SECURITY HEADERS (Defends against Clickjacking & XSS) ---
+// --- SECURITY HEADERS ---
 header("X-Frame-Options: DENY");
 header("X-Content-Type-Options: nosniff");
 header("X-XSS-Protection: 1; mode=block");
 
 // --- ROLE CHECK ---
 if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'Inventory Manager' && $_SESSION['role'] !== 'Admin')) {
-    // If a 'User' tries to access this page, send them to the safe user page.
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'User') {
         header("Location: user_inventory.php");
         exit();
@@ -20,16 +19,15 @@ if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'Inventory Manager' && $
     exit();
 }
 
-// --- CSRF TOKEN GENERATION ---
+// --- CSRF TOKEN ---
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 $message = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 1. VERIFY CSRF TOKEN
     if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        die("Security Error: Invalid CSRF Token. Request blocked.");
+        die("Security Error: Invalid CSRF Token.");
     }
 
     try {
@@ -44,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
         
         $userId = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 1;
-        $userRole = $_SESSION['role']; // Pass role for security check
+        $userRole = $_SESSION['role'];
         
         manageInventory($conn, $action, $data, $userId, $userRole);
         $message = "Action successful!";
@@ -104,7 +102,6 @@ require_once '../includes/header.php';
     <h3 id="formTitle">Add New Item</h3>
     <form id="inventoryForm" method="POST" action="" style="background: #f9f9f9; padding: 20px; border: 1px solid #ddd; margin-bottom: 20px; border-radius: 5px;">
         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-        
         <input type="hidden" name="action" value="add" id="formAction">
         <input type="hidden" name="part_id" id="inputID">
         
@@ -129,11 +126,11 @@ require_once '../includes/header.php';
             </div>
             <div style="flex: 1;">
                 <label>Value ($):</label><br>
-                <input type="number" step="0.01" name="price" id="inputPrice" placeholder="0.00" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <input type="number" step="0.01" min="0" max="10000" name="price" id="inputPrice" placeholder="0.00" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="flex: 1;">
                 <label>Stock:</label><br>
-                <input type="number" name="quantity" id="inputQty" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                <input type="number" min="0" max="10000" name="quantity" id="inputQty" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             </div>
             <div style="display: flex; align-items: flex-end;">
                 <button type="submit" id="submitBtn" class="btn-green">Add Item</button>
@@ -164,7 +161,8 @@ require_once '../includes/header.php';
             <?php foreach ($inventoryItems as $item): ?>
                 <tr style="border-bottom: 1px solid #eee;">
                     <td><?php echo $rowNumber++; ?></td>
-                    <td><?php echo $item['category']; ?></td> <td><b><?php echo $item['part_name']; ?></b></td>
+                    <td><?php echo $item['category']; ?></td>
+                    <td><b><?php echo $item['part_name']; ?></b></td>
                     <td><?php echo $item['supplier']; ?></td>
                     <td>$<?php echo number_format($item['price'], 2); ?></td>
                     <td>
