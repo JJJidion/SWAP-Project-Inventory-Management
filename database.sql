@@ -137,6 +137,19 @@ INSERT INTO `inventory` (`part_name`, `category`, `supplier`, `stock_level`, `co
 
 COMMIT;
 
+-- 1. Fix Inventory Table (Add Price)
+ALTER TABLE `inventory` 
+ADD COLUMN `price` DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER `stock_level`;
+
+-- 2. Fix Audit Logs Table (Add Timestamp)
+-- We alter the table to ensure the column exists
+ALTER TABLE `audit_logs` 
+ADD COLUMN `timestamp` DATETIME DEFAULT CURRENT_TIMESTAMP;
+
+-- 3. (Optional) Insert a test log to make sure it works now
+INSERT INTO `audit_logs` (`user_id`, `action`, `timestamp`) VALUES 
+(1, 'System Repair: Database columns fixed', NOW());
+
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
