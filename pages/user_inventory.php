@@ -4,8 +4,10 @@ session_start();
 require_once '../config/config.php';
 require_once '../utils/inventory_logic.php';
 
-// Session timeout
-require_once __DIR__ . '/../utils/session_check.php';
+// --- SECURITY HEADERS ---
+header("X-Frame-Options: DENY");
+header("X-Content-Type-Options: nosniff");
+header("X-XSS-Protection: 1; mode=block");
 
 // --- SECURITY: ACCESS CONTROL ---
 $allowedRoles = ['User', 'Admin', 'Inventory Manager'];
@@ -16,9 +18,19 @@ if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], $allowedRoles)) {
     exit();
 }
 
+// --- CSRF TOKEN GENERATION ---
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // --- HANDLE UPDATES ONLY ---
 $message = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 1. VERIFY CSRF TOKEN
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die("Security Error: Invalid CSRF Token. Request blocked.");
+    }
+
     try {
         if (isset($_POST['action']) && $_POST['action'] === 'update') {
             $data = [
@@ -26,10 +38,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'part_name' => trim($_POST['part_name']),
                 'category' => $_POST['category'],
                 'supplier' => trim($_POST['supplier']),
-                'quantity' => $_POST['quantity']
+                'quantity' => $_POST['quantity'],
+                'price' => $_POST['price'] // Required by logic now
             ];
+            
             $userId = $_SESSION['user_id'] ?? $_SESSION['id'] ?? 0;
-            manageInventory($conn, 'update', $data, $userId);
+            $userRole = $_SESSION['role']; // Get Role
+            
+            // FIXED: Now passing 5 arguments including $userRole
+            manageInventory($conn, 'update', $data, $userId, $userRole);
+            
             $message = "Item updated successfully!";
         } else {
             $message = "Error: Unauthorized action.";
@@ -93,6 +111,7 @@ require_once '../includes/header.php';
     <div id="editFormContainer">
         <h3 style="margin-top:0;">✏️ Update Item Details</h3>
         <form method="POST" action="">
+            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
             <input type="hidden" name="action" value="update">
             <input type="hidden" name="part_id" id="inputID">
             
@@ -104,14 +123,20 @@ require_once '../includes/header.php';
                 <div style="flex: 1;">
                     <label>Category:</label><br>
                     <select name="category" id="inputCategory" style="width:100%; padding:5px;">
+                        <option value="Raw Materials">Raw Materials</option>
+                        <option value="Tooling">Tooling</option>
+                        <option value="Components">Components</option>
+                        <option value="Consumables">Consumables</option>
                         <option value="General">General</option>
-                        <option value="Electronics">Electronics</option>
-                        <option value="Hardware">Hardware</option>
                     </select>
                 </div>
                 <div style="flex: 1;">
                     <label>Supplier:</label><br>
                     <input type="text" name="supplier" id="inputSupplier" style="width:100%; padding:5px;">
+                </div>
+                <div style="flex: 1;">
+                    <label>Value ($):</label><br>
+                    <input type="number" step="0.01" name="price" id="inputPrice" required style="width:100%; padding:5px;">
                 </div>
                 <div style="flex: 1;">
                     <label>Stock:</label><br>
@@ -136,6 +161,7 @@ require_once '../includes/header.php';
             <th style="padding: 10px; border: 1px solid #dee2e6;">Category</th>
             <th style="padding: 10px; border: 1px solid #dee2e6;">Part Name</th>
             <th style="padding: 10px; border: 1px solid #dee2e6;">Supplier</th>
+            <th style="padding: 10px; border: 1px solid #dee2e6;">Value ($)</th>
             <th style="padding: 10px; border: 1px solid #dee2e6;">Stock</th>
             <th style="padding: 10px; border: 1px solid #dee2e6;">Actions</th>
         </tr>
@@ -147,6 +173,7 @@ require_once '../includes/header.php';
                     <td><?php echo htmlspecialchars($item['category']); ?></td>
                     <td><b><?php echo htmlspecialchars($item['part_name']); ?></b></td>
                     <td><?php echo htmlspecialchars($item['supplier']); ?></td>
+                    <td>$<?php echo number_format($item['price'], 2); ?></td>
                     <td>
                         <?php echo $item['stock_level']; ?>
                         <?php if($item['stock_level'] < 10) echo " <span style='color:red; font-weight:bold;'>(Low)</span>"; ?>
@@ -157,25 +184,28 @@ require_once '../includes/header.php';
                             '<?php echo addslashes($item['part_name']); ?>',
                             '<?php echo $item['stock_level']; ?>',
                             '<?php echo addslashes($item['category']); ?>',
-                            '<?php echo addslashes($item['supplier']); ?>'
+                            '<?php echo addslashes($item['supplier']); ?>',
+                            '<?php echo $item['price']; ?>'
                         )">Update</button>
                     </td>
                 </tr>
             <?php endforeach; ?>
         <?php else: ?>
-            <tr><td colspan="6" style="text-align:center;">No items found.</td></tr>
+            <tr><td colspan="7" style="text-align:center;">No items found.</td></tr>
         <?php endif; ?>
     </table>
 </div>
 
 <script>
-function openEditForm(id, name, qty, cat, supp) {
+function openEditForm(id, name, qty, cat, supp, price) {
     document.getElementById('editFormContainer').style.display = 'block';
     document.getElementById('inputID').value = id;
     document.getElementById('inputName').value = name;
     document.getElementById('inputQty').value = qty;
     document.getElementById('inputCategory').value = cat;
     document.getElementById('inputSupplier').value = supp;
+    document.getElementById('inputPrice').value = price;
+    
     document.getElementById('editFormContainer').scrollIntoView({ behavior: 'smooth' });
 }
 
