@@ -89,3 +89,22 @@
 2026-01-29 12:19:39,485 - INFO - 127.0.0.1 - - [29/Jan/2026 12:19:39] "POST /ask HTTP/1.1" 200 -
 2026-01-29 12:19:52,774 - INFO - 127.0.0.1 - - [29/Jan/2026 12:19:52] "POST /ask HTTP/1.1" 200 -
 2026-01-29 12:20:10,209 - INFO - 127.0.0.1 - - [29/Jan/2026 12:20:10] "POST /ask HTTP/1.1" 200 -
+2026-01-30 20:53:09,909 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-30 20:53:09,910 - INFO - [33mPress CTRL+C to quit[0m
+2026-01-30 20:53:32,951 - INFO - 127.0.0.1 - - [30/Jan/2026 20:53:32] "POST /ask HTTP/1.1" 200 -
+2026-01-30 20:53:42,932 - INFO - 127.0.0.1 - - [30/Jan/2026 20:53:42] "POST /ask HTTP/1.1" 200 -
+2026-01-30 20:54:08,729 - INFO - 127.0.0.1 - - [30/Jan/2026 20:54:08] "POST /ask HTTP/1.1" 200 -
+2026-01-30 20:54:22,641 - INFO - 127.0.0.1 - - [30/Jan/2026 20:54:22] "POST /ask HTTP/1.1" 200 -
+2026-01-30 20:54:40,429 - INFO - 127.0.0.1 - - [30/Jan/2026 20:54:40] "POST /ask HTTP/1.1" 200 -
+2026-01-30 20:54:55,373 - INFO - 127.0.0.1 - - [30/Jan/2026 20:54:55] "POST /ask HTTP/1.1" 200 -
+2026-01-30 20:56:22,311 - WARNING - ACCESS DENIED: User 'billyKwang' (Role 'employee') tried to access restricted term 'obsolete' in query: 'Show obsolete'
+2026-01-30 20:56:22,312 - INFO - 127.0.0.1 - - [30/Jan/2026 20:56:22] "POST /ask HTTP/1.1" 200 -
+2026-01-30 20:56:34,948 - INFO - 127.0.0.1 - - [30/Jan/2026 20:56:34] "POST /ask HTTP/1.1" 200 -
+2026-01-30 20:56:46,898 - INFO - 127.0.0.1 - - [30/Jan/2026 20:56:46] "POST /ask HTTP/1.1" 200 -
+2026-01-30 20:57:28,672 - INFO - 127.0.0.1 - - [30/Jan/2026 20:57:28] "POST /ask HTTP/1.1" 200 -
+2026-01-30 20:58:04,695 - INFO - 127.0.0.1 - - [30/Jan/2026 20:58:04] "POST /ask HTTP/1.1" 200 -
+2026-01-30 21:14:36,995 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-01-30 21:14:36,995 - INFO - [33mPress CTRL+C to quit[0m
+2026-01-30 21:14:42,366 - INFO - 127.0.0.1 - - [30/Jan/2026 21:14:42] "POST /ask HTTP/1.1" 200 -

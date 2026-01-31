@@ -38,12 +38,12 @@ $message = '';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Retrieve form data
-    $username = $_POST['username'];
-    $email = $_POST['email'];
-    $firstName = $_POST['first_name'];
-    $lastName = $_POST['last_name'];
+    $username = trim($_POST['username']);
+    $email = trim($_POST['email']);
+    $firstName = trim($_POST['first_name']);
+    $lastName = trim($_POST['last_name']);
     $role = $_POST['role'];
-    $phoneNumber = $_POST['phone_number'];
+    $phoneNumber = trim($_POST['phone_number']);
     $isValid = true;
 
     // A. Required Fields Check

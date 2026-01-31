@@ -14,8 +14,6 @@ function getInventory($conn, $search = '') {
             $result = $conn->query("SELECT * FROM inventory WHERE is_deleted = 0 ORDER BY id ASC");
         }
         while ($row = $result->fetch_assoc()) {
-            // OUTPUT ENCODING (Defeats Stored XSS)
-            // We cleanse data right when we pull it out, so it's always safe to display.
             $row['part_name'] = htmlspecialchars($row['part_name'], ENT_QUOTES, 'UTF-8');
             $row['category'] = htmlspecialchars($row['category'], ENT_QUOTES, 'UTF-8');
             $row['supplier'] = htmlspecialchars($row['supplier'], ENT_QUOTES, 'UTF-8');
@@ -33,7 +31,6 @@ function getRecentLogs($conn, $limit = 50) {
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         if (empty($row['username'])) $row['username'] = 'System/Unknown';
-        // XSS Protection for logs too
         $row['username'] = htmlspecialchars($row['username'], ENT_QUOTES, 'UTF-8');
         $row['action'] = htmlspecialchars($row['action'], ENT_QUOTES, 'UTF-8');
         $logs[] = $row;
@@ -41,28 +38,31 @@ function getRecentLogs($conn, $limit = 50) {
     return $logs;
 }
 
-// NOW ACCEPTS $userRole TO ENFORCE PERMISSIONS
 function manageInventory($conn, $action, $data, $userId, $userRole) {
     
-    // 1. SECURITY: Role-Based Access Control (RBAC)
-    // If a standard 'User' tries to Add or Delete, BLOCK THEM immediately.
-    if ($userRole === 'User' && ($action === 'add' || $action === 'delete')) {
+    // 1. SECURITY: Role-Based Access Control
+    if ($userRole === 'User' && ($action === 'add' || $action === 'delete' || $action === 'update')) {
         throw new Exception("Security Alert: You do not have permission to perform this action.");
     }
 
-    // 2. SECURITY: Input Cooldown (Anti-Bot)
+    // 2. SECURITY: Input Cooldown (Anti-Spam frequency)
+    // Must wait 2 seconds between actions
     if (isset($_SESSION['last_action_time']) && (time() - $_SESSION['last_action_time'] < 2)) {
         throw new Exception("Please wait a moment before trying again.");
     }
     $_SESSION['last_action_time'] = time();
 
-    // 3. SECURITY: Input Validation
+    // 3. SECURITY: Input Validation & Limits (Anti-Spam values)
     if ($action === 'add' || $action === 'update') {
+        // --- NEW LIMITS ---
         if ($data['quantity'] < 0) throw new Exception("Stock cannot be negative.");
+        if ($data['quantity'] > 10000) throw new Exception("Stock limit exceeded (Max: 10,000)."); // Spam limit
+        
         if ($data['price'] < 0) throw new Exception("Price cannot be negative.");
+        if ($data['price'] > 10000) throw new Exception("Price limit exceeded (Max: $10,000)."); // Spam limit
+        
         if (empty($data['part_name'])) throw new Exception("Part Name is required.");
         
-        // Input Sanitization (Clean the data before DB)
         $data['part_name'] = trim($data['part_name']);
         $data['category'] = trim($data['category']);
         $data['supplier'] = trim($data['supplier']);
@@ -77,13 +77,13 @@ function manageInventory($conn, $action, $data, $userId, $userRole) {
             $stmt->bind_param("sssid", $data['part_name'], $data['category'], $data['supplier'], $data['quantity'], $data['price']);
             $stmt->execute();
             $newId = $conn->insert_id;
-            $logDetails = "Added Item #$newId: '{$data['part_name']}'";
+            $logDetails = "Added Item #$newId: '{$data['part_name']}' (Value: \${$data['price']})";
 
         } elseif ($action === 'update') {
             $stmt = $conn->prepare("UPDATE inventory SET stock_level = ?, part_name = ?, category = ?, supplier = ?, price = ? WHERE id = ?");
             $stmt->bind_param("isssdi", $data['quantity'], $data['part_name'], $data['category'], $data['supplier'], $data['price'], $data['id']);
             $stmt->execute();
-            $logDetails = "Updated Item #{$data['id']}: Stock {$data['quantity']}";
+            $logDetails = "Updated Item #{$data['id']}: Stock {$data['quantity']}, Value \${$data['price']}";
 
         } elseif ($action === 'delete') {
             $stmtGet = $conn->prepare("SELECT part_name FROM inventory WHERE id = ?");

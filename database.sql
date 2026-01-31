@@ -12,7 +12,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 -- --------------------------------------------------------
--- 2. Table: login_attempts (Teammate's Work - DO NOT TOUCH)
+-- 2. Table: login_attempts
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `login_attempts`;
 CREATE TABLE `login_attempts` (
@@ -23,7 +23,7 @@ CREATE TABLE `login_attempts` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
--- 3. Table: users (Teammate's Work - DO NOT TOUCH STRUCTURE)
+-- 3. Table: users
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
@@ -49,7 +49,7 @@ INSERT INTO `users` (`id`, `email`, `username`, `password_hash`, `role`, `first_
 (3, 'billykwang@gmail.com', 'billyKwang', '$2y$10$pFGUognB8Hn.BymhXw/BrOo5XhKdlXcz2ANK4S6vdP/4RzdLVH3Se', 'User', 'Billy', 'Kwang', '66667777', '2026-01-21 23:05:36', '2026-01-21 23:05:36');
 
 -- --------------------------------------------------------
--- 4. Table: audit_logs (MOVED UP so it exists before we insert!)
+-- 4. Table: audit_logs
 -- --------------------------------------------------------
 DROP TABLE IF EXISTS audit_logs;
 CREATE TABLE audit_logs (
@@ -136,6 +136,19 @@ INSERT INTO `inventory` (`part_name`, `category`, `supplier`, `stock_level`, `co
 ('Ball Bearing (608ZZ)', 'Components', 'LZF Bearings', 200, 1.89);
 
 COMMIT;
+
+-- 1. Fix Inventory Table (Add Price)
+ALTER TABLE `inventory` 
+ADD COLUMN `price` DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER `stock_level`;
+
+-- 2. Fix Audit Logs Table (Add Timestamp)
+-- We alter the table to ensure the column exists
+ALTER TABLE `audit_logs` 
+ADD COLUMN `timestamp` DATETIME DEFAULT CURRENT_TIMESTAMP;
+
+-- 3. (Optional) Insert a test log to make sure it works now
+INSERT INTO `audit_logs` (`user_id`, `action`, `timestamp`) VALUES 
+(1, 'System Repair: Database columns fixed', NOW());
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;

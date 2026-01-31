@@ -3,6 +3,9 @@
 
 require_once __DIR__ . '/../config/config.php';
 
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
 /**
  * Convert system roles into user-friendly display roles
  * (Used ONLY for audit logs)
