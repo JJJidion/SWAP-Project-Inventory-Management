@@ -49,11 +49,11 @@ if ($currentUserRole !== 'Admin' && $requestedUserId != $currentUserId) {
 // --- 5. HANDLE FORM SUBMISSION (POST Request) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $firstName       = $_POST['first_name'];
-    $lastName        = $_POST['last_name'];
-    $username        = $_POST['username'];
-    $email           = $_POST['email'];
-    $phoneNumber     = $_POST['phone_number'];
+    $firstName       = trim($_POST['first_name']);
+    $lastName        = trim($_POST['last_name']);
+    $username        = trim($_POST['username']);
+    $email           = trim($_POST['email']);
+    $phoneNumber     = trim($_POST['phone_number']);
     
     // SECURITY: Role Tampering Prevention
     // Logic: Only Admins can submit a 'role' change via POST.

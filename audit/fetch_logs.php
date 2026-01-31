@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../config/config.php';
 
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
 $lastId = isset($_GET['last_id']) ? (int)$_GET['last_id'] : 0;
 
 $stmt = $conn->prepare("

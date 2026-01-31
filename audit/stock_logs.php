@@ -6,6 +6,9 @@ session_start();
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/audit_logger.php';
 
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
 // Admin only
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
     http_response_code(403);
