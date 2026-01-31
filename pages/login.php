@@ -76,8 +76,9 @@ if ($failed_attempts >= MAX_LOGIN_ATTEMPTS) {
 }
 // --- RATE LIMIT CHECK END ---
 
-// Start session to check if user is already logged in
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // If user is already logged in, redirect to dashboard
 if (isset($_SESSION["username"])):
