@@ -4,6 +4,9 @@ session_start();
 require_once '../config/config.php';
 require_once '../utils/inventory_logic.php';
 
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
 // --- SECURITY HEADERS ---
 header("X-Frame-Options: DENY");
 header("X-Content-Type-Options: nosniff");

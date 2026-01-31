@@ -4,6 +4,9 @@ session_start();
 require_once '../config/config.php';
 require_once '../utils/inventory_logic.php';
 
+// Session timeout
+require_once __DIR__ . '/../utils/session_check.php';
+
 // --- SECURITY CHECK ---
 // Ensure only Admins/Managers can access this file directly
 if (!isset($_SESSION['role']) || ($_SESSION['role'] !== 'Inventory Manager' && $_SESSION['role'] !== 'Admin')) {
