@@ -108,3 +108,12 @@
  * Running on http://127.0.0.1:5000
 2026-01-30 21:14:36,995 - INFO - [33mPress CTRL+C to quit[0m
 2026-01-30 21:14:42,366 - INFO - 127.0.0.1 - - [30/Jan/2026 21:14:42] "POST /ask HTTP/1.1" 200 -
+2026-02-03 13:31:04,894 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-02-03 13:31:04,895 - INFO - [33mPress CTRL+C to quit[0m
+2026-02-03 13:31:08,602 - INFO - 127.0.0.1 - - [03/Feb/2026 13:31:08] "POST /ask HTTP/1.1" 200 -
+2026-02-03 13:31:41,006 - INFO - 127.0.0.1 - - [03/Feb/2026 13:31:41] "POST /ask HTTP/1.1" 200 -
+2026-02-03 13:31:56,903 - INFO - 127.0.0.1 - - [03/Feb/2026 13:31:56] "POST /ask HTTP/1.1" 200 -
+2026-02-09 21:33:39,557 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-02-09 21:33:39,558 - INFO - [33mPress CTRL+C to quit[0m

@@ -16,7 +16,7 @@ $userData = null;
 $pageTitle = 'Login';
 
 define('MAX_LOGIN_ATTEMPTS', 5);
-define('LOCKOUT_TIME_MINUTES', 1);
+define('LOCKOUT_TIME_MINUTES', 15);
 
 // --- RATE LIMIT CHECK START ---
 // --- RATE LIMIT CHECK START ---
