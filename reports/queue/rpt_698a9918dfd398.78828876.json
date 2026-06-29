@@ -1,0 +1,18 @@
+{
+    "id": "rpt_698a9918dfd398.78828876",
+    "params": {
+        "report_type": "parts_usage",
+        "start_date": "2025-01-01",
+        "end_date": "2026-02-10",
+        "filters": {
+            "supplier": "LZF Bearings"
+        }
+    },
+    "username": "Alice_123",
+    "status": "completed",
+    "created_at": 1770690840,
+    "completed_at": 1770690845,
+    "output_file": "parts_usage_report_20260210_033405.pdf",
+    "error": null,
+    "hash": "55d5906d50cb6476324e92496b34e874dba5dd782ebdf3ed712cc6a8ca3a9630"
+}

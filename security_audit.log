@@ -117,3 +117,10 @@
 2026-02-09 21:33:39,557 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
  * Running on http://127.0.0.1:5000
 2026-02-09 21:33:39,558 - INFO - [33mPress CTRL+C to quit[0m
+2026-02-10 10:26:04,291 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-02-10 10:26:04,292 - INFO - [33mPress CTRL+C to quit[0m
+2026-02-10 10:26:12,816 - INFO - 127.0.0.1 - - [10/Feb/2026 10:26:12] "POST /ask HTTP/1.1" 200 -
+2026-02-10 10:26:41,341 - INFO - 127.0.0.1 - - [10/Feb/2026 10:26:41] "POST /ask HTTP/1.1" 200 -
+2026-02-10 10:46:39,186 - WARNING - SECURITY ALERT: Adversarial pattern 'drop.*table' detected in query: 'DROP TABLE IF EXISTS loginattempts' by User 'Alice_123 ('Role: 'admin')
+2026-02-10 10:46:39,186 - INFO - 127.0.0.1 - - [10/Feb/2026 10:46:39] "POST /ask HTTP/1.1" 200 -
